@@ -88,13 +88,15 @@ function toSql(run: Run): Sql {
 
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
+    // Regular Postgres driver: node-postgres (`pg`) — works with Neon or any
+    // Postgres URL, including Supabase. One pool per process; warm serverless
+    // instances reuse it.
     const { Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
+    await applyPostgresMigrations(pool);
     globalRef.__pgPool__ = pool;
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
@@ -102,9 +104,56 @@ function createNeonSql(): Promise<Sql> {
     });
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
+    globalRef.__pgPool__ = undefined;
     throw err;
   });
   return globalRef.__pgSqlPromise__;
+}
+
+/**
+ * Apply pending `migrations/*.sql` on the real Postgres connection.
+ *
+ * Build-time `scripts/migrate.mjs` only runs when `DATABASE_URL` is present
+ * during `npm run build`. Vercel often injects that variable at runtime only,
+ * so a deployed database can be reachable and still have no `site_settings`.
+ * This pass uses the same basename tracking as the build migrator. Each file
+ * is one transaction. Files are `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`,
+ * so a retry cannot wipe existing rows.
+ */
+async function applyPostgresMigrations(pool: import("pg").Pool): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
+    );
+    const applied = (await client.query<{ name: string }>("select name from _migrations")).rows.map(
+      (row) => row.name,
+    );
+    const migrations = import.meta.glob("/migrations/*.sql", {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    }) as Record<string, string>;
+    for (const { name, path } of pendingMigrations(Object.keys(migrations), applied)) {
+      const text = migrations[path];
+      if (!text) continue;
+      try {
+        await client.query("begin");
+        await client.query(text);
+        await client.query("insert into _migrations (name) values ($1)", [name]);
+        await client.query("commit");
+      } catch (error) {
+        try {
+          await client.query("rollback");
+        } catch {
+          /* keep the original error */
+        }
+        throw error;
+      }
+    }
+  } finally {
+    client.release();
+  }
 }
 
 async function createPgliteSql(): Promise<Sql> {
@@ -185,8 +234,9 @@ async function createSql(): Promise<Sql> {
  * Get the shared, **server-only** SQL client. Neon when `DATABASE_URL` is set,
  * otherwise the local PGLite fallback. Memoized — safe to call per request.
  *
- * Schema comes from `migrations/*.sql`, auto-applied before the first query on
- * both backends — define tables there, never inline in server functions.
+ * Schema comes from `migrations/*.sql`, applied before the first query on
+ * both backends. Postgres applies them on first connect (not only at build
+ * time). Define tables in `migrations/`, never inline in server functions.
  */
 export function getSql(): Promise<Sql> {
   sqlPromise ??= createSql().catch((err) => {
@@ -255,27 +305,25 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
 /**
  * Finish DB bootstrap before the server handles traffic.
  *
- * - **PGLite** (preview / no `DATABASE_URL`): open the in-memory DB and apply
- *   `migrations/*.sql`. Idempotent — concurrent callers share one promise.
- * - **Neon**: no-op (pool is created lazily on first query).
+ * - **Postgres** (`DATABASE_URL` set): open the pool and apply any pending
+ *   `migrations/*.sql` before queries. Safe to repeat. Does not drop tables.
+ * - **PGLite** (no `DATABASE_URL`): open the embedded DB and apply the same files.
  *
  * Vite `configureServer` awaits this at dev startup; production imports of this
  * module kick it off immediately (see bottom of file).
  */
 export function ensureDbReady(): Promise<void> {
-  if (dbSource !== "pglite") return Promise.resolve();
   return getSql().then(() => undefined);
 }
 
-// Server-only eager start: kick PGLite bootstrap as soon as this module loads in
-// Node. Client bundles never hit this path (`getSql` throws in the browser).
+// Server-only eager start so the first page does not query before migrations.
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && dbSource === "pglite") {
+if (typeof window === "undefined") {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
-    console.error("[db] PGLite bootstrap failed:", err);
+    console.error("[db] bootstrap failed:", err);
     throw err;
   });
 }
