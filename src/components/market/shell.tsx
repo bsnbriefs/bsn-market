@@ -50,13 +50,14 @@ export function StoreShell({ children }: { children: ReactNode }) {
               <li key={tab.to}>
                 <Link
                   to={tab.to}
-                  className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active ? "text-primary" : "text-muted"}`}
+                  className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-200 ${active ? "text-primary" : "text-muted"}`}
                 >
                   <span className="relative">
-                    <Icon className="size-5" />
+                    <Icon className={`size-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} />
                     {tab.to === "/cart" ? <CartBadge /> : null}
                   </span>
                   {tab.label}
+                  <span className={`h-0.5 w-4 rounded-full bg-primary transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0"}`} />
                 </Link>
               </li>
             );
@@ -73,7 +74,7 @@ function CartBadge() {
   useEffect(() => setReady(true), []);
   if (!ready || count < 1) return null;
   return (
-    <span className="absolute -right-2 -top-2 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-fg">
+    <span key={count} className="bsn-pop absolute -right-2 -top-2 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-fg">
       {count > 9 ? "9+" : count}
     </span>
   );
@@ -95,7 +96,7 @@ export function SearchForm({ initial = "" }: { initial?: string }) {
         onChange={(event) => setQ(event.target.value)}
         placeholder="Search products, brands, markets"
         aria-label="Search products"
-        className="h-11 w-full rounded-full border border-border bg-surface pl-10 pr-4 text-base outline-none"
+        className="h-11 w-full rounded-full border border-border bg-surface pl-10 pr-4 text-base outline-none transition duration-200 focus:border-primary"
       />
     </form>
   );
