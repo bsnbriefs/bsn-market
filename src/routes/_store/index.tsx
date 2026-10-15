@@ -32,20 +32,23 @@ function Home() {
   const hasProducts = data.featured.length + data.newest.length > 0;
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Barrister Street Network</p>
-      <h1 className="mt-1 font-display text-4xl leading-tight md:text-5xl">{data.tagline}</h1>
-      <div className="mt-4">
+      <div className="bsn-rise">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Barrister Street Network</p>
+        <h1 className="mt-1 font-display text-4xl leading-tight md:text-5xl">{data.tagline}</h1>
+      </div>
+      <div className="bsn-rise mt-4" style={{ animationDelay: "60ms" }}>
         <SearchForm />
       </div>
-      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {data.categories.map((category) => {
+      <div className="-mx-4 mt-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
+        {data.categories.map((category, index) => {
           const Icon = icons[category.slug] ?? ShoppingBasket;
           return (
             <Link
               key={category.slug}
               to="/shop"
               search={{ q: "", category: category.slug, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }}
-              className="flex h-16 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-surface text-xs font-medium"
+              style={{ animationDelay: `${80 + index * 30}ms` }}
+              className="bsn-rise flex h-16 w-24 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-surface text-xs font-medium transition duration-200 hover:border-primary/40 active:scale-95"
             >
               <Icon className="size-4 text-primary" />
               {category.name}
@@ -54,9 +57,11 @@ function Home() {
         })}
       </div>
       {campaign ? (
-        <Link to="/shop" search={{ q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} className="mt-5 block overflow-hidden rounded-3xl border border-border bg-surface">
+        <Link to="/shop" search={{ q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} className="bsn-rise group mt-5 block overflow-hidden rounded-3xl border border-border bg-surface" style={{ animationDelay: "120ms" }}>
           {campaign.image_url ? (
-            <img src={campaign.image_url} alt="" className="h-48 w-full object-cover md:h-72" />
+            <div className="relative h-48 overflow-hidden md:h-72">
+              <img src={campaign.image_url} alt="" className="bsn-drift h-full w-full object-cover" />
+            </div>
           ) : null}
           <div className="p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">This week</p>
@@ -71,9 +76,9 @@ function Home() {
       {hasProducts ? (
         <>
           <ProductRail title="Featured" products={data.featured} />
-          <ProductRail title="Popular right now" products={data.trending} />
+          <ProductRail title="Best sellers" note="Ranked from completed orders, not a paid placement." products={data.trending} />
           <ProductRail title="New arrivals" products={data.newest} />
-          <ProductRail title="Special offers" products={data.offers} />
+          <ProductRail title="Deals" note="Marked down from the compare-at price. Not a timed countdown." products={data.offers} />
         </>
       ) : (
         <div className="mt-6">
@@ -94,7 +99,7 @@ function Home() {
           ["Returns", "Eligibility is shown on each product.", "/policies/returns"],
           ["Support", "Send a message from your account.", "/support"],
         ].map(([title, body, href]) => (
-          <a key={title} href={href} className="rounded-2xl border border-border bg-surface p-4">
+          <a key={title} href={href} className="rounded-2xl border border-border bg-surface p-4 transition duration-200 hover:border-primary/40">
             <h3 className="font-display text-xl">{title}</h3>
             <p className="mt-1 text-sm text-muted">{body}</p>
           </a>

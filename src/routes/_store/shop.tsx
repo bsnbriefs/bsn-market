@@ -80,8 +80,8 @@ function ShopPage() {
         </div>
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {data.products.map((product) => (
-            <ProductCardView key={product.id} product={product} />
+          {data.products.map((product, index) => (
+            <ProductCardView key={product.id} product={product} className="bsn-rise" style={{ animationDelay: `${Math.min(index, 7) * 40}ms` }} />
           ))}
         </div>
       )}
