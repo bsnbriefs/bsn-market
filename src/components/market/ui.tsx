@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
 import { formatNaira } from "@/lib/market/money";
 
 export type CardLike = {
@@ -13,7 +14,7 @@ export type CardLike = {
 };
 
 export function cn(...parts: Array<string | false | undefined>) {
-  return parts.filter(Boolean).join(" ");
+  return twMerge(parts.filter(Boolean).join(" "));
 }
 
 export function Button({
@@ -77,20 +78,38 @@ export function EmptyState({ title, body, action }: { title: string; body: strin
   );
 }
 
-export function ProductCardView({ product }: { product: CardLike }) {
+export function ProductCardView({
+  product,
+  className,
+  style,
+}: {
+  product: CardLike;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const saving =
+    product.compareAtKobo && product.compareAtKobo > product.priceKobo
+      ? product.compareAtKobo - product.priceKobo
+      : 0;
+  const percent = saving && product.compareAtKobo ? Math.round((saving / product.compareAtKobo) * 100) : 0;
   return (
     <Link
       to="/product/$slug"
       params={{ slug: product.id }}
-      className="group flex w-40 shrink-0 flex-col md:w-auto"
+      style={style}
+      className={cn(
+        "group flex w-full min-w-0 snap-start flex-col transition duration-300 ease-out active:scale-[0.98] md:hover:-translate-y-0.5",
+        className,
+      )}
     >
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-border">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-border ring-1 ring-transparent transition duration-300 group-hover:ring-primary/30 group-hover:shadow-md">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <div className="grid h-full place-items-center text-sm text-muted">No photo</div>
@@ -98,34 +117,52 @@ export function ProductCardView({ product }: { product: CardLike }) {
         {product.stock < 1 ? (
           <span className="absolute left-2 top-2 rounded-full bg-fg px-2 py-1 text-xs text-surface">Sold out</span>
         ) : null}
+        {percent > 0 ? (
+          <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-1 text-[11px] font-semibold text-accent-fg">
+            −{percent}%
+          </span>
+        ) : null}
       </div>
       <p className="mt-2 line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
       <p className="text-xs text-muted">{product.retailerCity}</p>
       <p className="mt-1 text-sm font-semibold">
         <Money kobo={product.priceKobo} />
-        {product.compareAtKobo && product.compareAtKobo > product.priceKobo ? (
+        {saving > 0 && product.compareAtKobo ? (
           <span className="ml-2 text-xs font-normal text-muted line-through">
             <Money kobo={product.compareAtKobo} />
           </span>
         ) : null}
       </p>
+      {saving > 0 ? (
+        <p className="text-xs font-semibold text-accent">
+          Save <Money kobo={saving} />
+        </p>
+      ) : null}
     </Link>
   );
 }
 
-export function ProductRail({ title, products }: { title: string; products: CardLike[] }) {
+export function ProductRail({ title, note, products }: { title: string; note?: string; products: CardLike[] }) {
   if (products.length === 0) return null;
   return (
     <section className="mt-8">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-2xl">{title}</h2>
+        <div>
+          <h2 className="font-display text-2xl">{title}</h2>
+          {note ? <p className="text-xs text-muted">{note}</p> : null}
+        </div>
         <Link to="/shop" search={{ q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} className="text-sm font-semibold text-primary">
           See all
         </Link>
       </div>
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
-        {products.map((product) => (
-          <ProductCardView key={product.id} product={product} />
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
+        {products.map((product, index) => (
+          <ProductCardView
+            key={product.id}
+            product={product}
+            className="bsn-rise w-40 shrink-0 md:w-auto"
+            style={{ animationDelay: `${Math.min(index, 7) * 45}ms` }}
+          />
         ))}
       </div>
     </section>
