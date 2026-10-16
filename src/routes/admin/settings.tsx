@@ -61,6 +61,9 @@ function SettingsPage() {
       <Field name="campaignTitle" placeholder="Banner title" aria-label="Banner title" />
       <Field name="campaignSubtitle" placeholder="Banner subtitle" aria-label="Banner subtitle" />
       <Field name="campaignLink" placeholder="/shop" aria-label="Banner link" />
+      <Field name="campaignStarts" type="datetime-local" aria-label="Promotion starts, Lagos time" />
+      <Field name="campaignEnds" type="datetime-local" aria-label="Promotion ends, Lagos time" />
+      <p className="text-xs text-muted">Leave the end blank for an ordinary banner. A countdown appears only when an end time is saved.</p>
       <Button type="submit">Save settings</Button>
     </form>
   );
