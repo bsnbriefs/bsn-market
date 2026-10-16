@@ -100,7 +100,7 @@ function ProductPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{product.categoryName}</p>
           <h1 className="font-display text-4xl">{product.name}</h1>
           <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {formatNaira(price)}
+            <span key={price} className="bsn-fade inline-block">{formatNaira(price)}</span>
             {saving > 0 && compareAt ? (
               <span className="ml-2 text-base font-normal text-muted line-through">{formatNaira(compareAt)}</span>
             ) : null}
@@ -117,15 +117,19 @@ function ProductPage() {
           {product.variants.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {product.variants.map((item) => (
-                <button key={item.id} type="button" onClick={() => setVariantId(item.id)} className={`min-h-11 rounded-full border px-3 text-sm transition duration-200 ${item.id === variantId ? "border-primary bg-primary text-primary-fg" : "border-border bg-surface"}`}>
+                <button key={item.id} type="button" onClick={() => setVariantId(item.id)} className={`min-h-11 rounded-full border px-3 text-sm transition duration-200 active:scale-95 ${item.id === variantId ? "border-primary bg-primary text-primary-fg" : "border-border bg-surface hover:border-primary/40"}`}>
                   {item.label}{item.stock < 1 ? " · sold out" : ""}
                 </button>
               ))}
             </div>
           ) : null}
           <div className="mt-4 flex items-center gap-3">
-            <label className="text-sm" htmlFor="qty">Quantity</label>
-            <input id="qty" type="number" min={1} max={10} value={qty} onChange={(event) => setQty(Math.min(10, Math.max(1, Number(event.target.value) || 1)))} className="h-11 w-20 rounded-xl border border-border bg-surface px-3 text-base" />
+            <span className="text-sm">Quantity</span>
+            <div className="inline-flex items-center overflow-hidden rounded-xl border border-border bg-surface">
+              <button type="button" className="size-11 text-lg transition-colors hover:bg-bg" aria-label="Decrease quantity" onClick={() => setQty((current) => Math.max(1, current - 1))}>−</button>
+              <span className="w-8 text-center text-sm font-semibold tabular-nums" aria-live="polite">{qty}</span>
+              <button type="button" className="size-11 text-lg transition-colors hover:bg-bg" aria-label="Increase quantity" onClick={() => setQty((current) => Math.min(10, current + 1))}>+</button>
+            </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Button type="button" variant="surface" onClick={() => addToCart(false)} disabled={stock < 1}>{justAdded ? "Added" : "Add to cart"}</Button>
@@ -148,7 +152,13 @@ function ProductPage() {
         )}
       </section>
       <ProductRail title="Related" products={product.related} />
-      <p className="mt-6 text-sm"><Link to="/shop" search={{ q: "", category: product.categorySlug, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} className="font-semibold text-primary">More in {product.categoryName}</Link></p>
+      <p className="mt-6 pb-16 text-sm md:pb-0"><Link to="/shop" search={{ q: "", category: product.categorySlug, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} className="font-semibold text-primary">More in {product.categoryName}</Link></p>
+      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-border bg-surface/95 px-4 py-2 backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm font-semibold tabular-nums">{formatNaira(price)}</p>
+          <Button type="button" className="shrink-0" onClick={() => addToCart(false)} disabled={stock < 1}>{justAdded ? "Added" : "Add to cart"}</Button>
+        </div>
+      </div>
     </article>
   );
 }
