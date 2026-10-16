@@ -156,6 +156,16 @@
   animation: bsn-bar 1s ease-in-out infinite alternate;
 }
 
-.bsn-slide {
-  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+@keyframes bsn-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.bsn-live {
+  animation: bsn-live 1.6s ease-in-out infinite;
 }
