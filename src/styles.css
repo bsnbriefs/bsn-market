@@ -89,25 +89,73 @@
 
 @keyframes bsn-fade {
   from {
-    opacity: 0.4;
+    opacity: 0.45;
   }
   to {
     opacity: 1;
   }
 }
 
+@keyframes bsn-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .bsn-rise {
-  animation: bsn-rise 0.55s ease both;
+  animation: bsn-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .bsn-drift {
-  animation: bsn-drift 18s ease-in-out alternate infinite;
+  animation: bsn-drift 22s ease-in-out alternate infinite;
 }
 
 .bsn-pop {
-  animation: bsn-pop 0.32s ease;
+  animation: bsn-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .bsn-fade {
-  animation: bsn-fade 0.32s ease;
+  animation: bsn-fade 0.28s ease;
+}
+
+/* Hidden only after hydration marks it pending, so first paint stays visible. */
+@media (prefers-reduced-motion: no-preference) {
+  .bsn-reveal.is-pending:not(.is-shown) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .bsn-reveal {
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+.bsn-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bsn-fold.is-open {
+  grid-template-rows: 1fr;
+}
+.bsn-fold > .bsn-fold-inner {
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .bsn-fold {
+    grid-template-rows: 1fr;
+  }
+}
+
+.bsn-pulse {
+  transform-origin: left center;
+  animation: bsn-bar 1s ease-in-out infinite alternate;
+}
+
+.bsn-slide {
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
