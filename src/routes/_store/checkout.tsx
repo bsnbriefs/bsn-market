@@ -77,6 +77,11 @@ function CheckoutForm() {
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_300px]">
       <div className="space-y-3">
         <h1 className="font-display text-3xl">Checkout</h1>
+        <ol className="flex items-center gap-2 text-xs font-semibold">
+          <li className="rounded-full bg-primary px-3 py-1 text-primary-fg">1 · Details</li>
+          <li className="text-muted" aria-hidden>→</li>
+          <li className={`rounded-full px-3 py-1 transition-colors ${busy ? "bg-primary text-primary-fg" : "bg-surface text-muted"}`}>2 · Paystack</li>
+        </ol>
         <p className="text-sm text-muted">The server recalculates every price. Reaching this page does not mean you have paid.</p>
         <Field name="name" required placeholder="Recipient name" defaultValue={address?.recipient || me.data?.profile.fullName || ""} aria-label="Recipient name" />
         <Field name="email" type="email" required placeholder="Email" defaultValue={me.data?.profile.email || ""} aria-label="Email" />
@@ -109,7 +114,7 @@ function CheckoutForm() {
         <p className="mt-2 flex justify-between font-semibold"><span>Total</span>{quote.data?.totalKobo === null || quote.data?.totalKobo === undefined ? <span>Pending quote</span> : <Money kobo={quote.data.totalKobo} />}</p>
         {(quote.data?.retailerIds.length ?? 0) > 1 ? <p className="mt-2 text-xs text-muted">This cart has {quote.data?.retailerIds.length} retailers. Each one fulfils separately, and delivery is charged per retailer where a fee exists.</p> : null}
         {quote.data?.issues.map((issue) => <p key={issue} className="mt-2 text-sm text-danger">{issue}</p>)}
-        <Button className="mt-4 w-full" type="submit" disabled={busy || items.length === 0}>{busy ? "Placing order…" : "Place order"}</Button>
+        <Button className="mt-4 w-full" type="submit" disabled={busy || items.length === 0}>{busy ? "Sending order…" : "Place order"}</Button>
       </aside>
     </form>
   );

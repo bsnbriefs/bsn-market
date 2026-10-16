@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { searchProducts } from "@/lib/market/catalog";
 import { NIGERIAN_STATES } from "@/lib/market/states";
-import { EmptyState, ProductCardView } from "@/components/market/ui";
+import { EmptyState, ProductCardView, Reveal } from "@/components/market/ui";
 
 const empty = { q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 };
 
@@ -32,11 +33,22 @@ function ShopPage() {
   const search = Route.useSearch();
   const data = Route.useLoaderData();
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const [filtersOpen, setFiltersOpen] = useState(false);
   return (
     <div>
       <h1 className="font-display text-3xl">{search.category ? data.categories.find((c) => c.slug === search.category)?.name ?? "Shop" : "Shop"}</h1>
       <p className="text-sm text-muted">{data.total} approved {data.total === 1 ? "product" : "products"}</p>
-      <form className="mt-4 grid gap-2 rounded-2xl border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-4" action="/shop">
+      <button
+        type="button"
+        className="mt-3 h-11 rounded-full border border-border bg-surface px-4 text-sm font-semibold md:hidden"
+        aria-expanded={filtersOpen}
+        onClick={() => setFiltersOpen((open) => !open)}
+      >
+        {filtersOpen ? "Hide filters" : "Filters and sort"}
+      </button>
+      <div className={`bsn-fold mt-3 ${filtersOpen ? "is-open" : ""}`}>
+        <div className="bsn-fold-inner">
+          <form className="grid gap-2 rounded-2xl border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-4" action="/shop">
         <input name="q" defaultValue={search.q} placeholder="Search" aria-label="Search" className="h-11 rounded-xl border border-border bg-bg px-3 text-base" />
         <select name="category" defaultValue={search.category} aria-label="Category" className="h-11 rounded-xl border border-border bg-bg px-3 text-base">
           <option value="">All categories</option>
@@ -70,10 +82,12 @@ function ShopPage() {
           <option value="price_asc">Price: low to high</option>
           <option value="price_desc">Price: high to low</option>
         </select>
-        <button className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-fg sm:col-span-2 lg:col-span-1" type="submit">
+        <button className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-fg transition-opacity active:opacity-80 sm:col-span-2 lg:col-span-1" type="submit">
           Apply filters
         </button>
-      </form>
+          </form>
+        </div>
+      </div>
       {data.products.length === 0 ? (
         <div className="mt-6">
           <EmptyState title="Nothing matches" body="Try another word, or clear the filters. Only approved products from active retailers are shown." action={<Link to="/shop" search={empty} className="font-semibold text-primary">Clear filters</Link>} />
@@ -81,7 +95,9 @@ function ShopPage() {
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
           {data.products.map((product, index) => (
-            <ProductCardView key={product.id} product={product} className="bsn-rise" style={{ animationDelay: `${Math.min(index, 7) * 40}ms` }} />
+            <Reveal key={product.id} delay={Math.min(index, 7) * 40}>
+              <ProductCardView product={product} />
+            </Reveal>
           ))}
         </div>
       )}

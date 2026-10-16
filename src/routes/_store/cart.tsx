@@ -35,6 +35,7 @@ function CartPage() {
       ) : (
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_280px]">
           <div className="space-y-4">
+            {quote.isFetching ? <div className="bsn-pulse h-1 w-full rounded-full bg-primary/50" aria-hidden /> : null}
             {quote.isLoading ? <p className="text-sm text-muted">Checking live prices and stock…</p> : null}
             {quote.data?.issues.map((issue) => (
               <p key={issue} className="rounded-xl bg-danger px-3 py-2 text-sm text-danger-fg">{issue}</p>
@@ -45,7 +46,7 @@ function CartPage() {
                 <p className="text-xs text-muted">Ships separately from other retailers.</p>
                 <ul className="mt-3 space-y-3">
                   {group.map((line) => (
-                    <li key={`${line.productId}-${line.variantId}`} className="flex items-start justify-between gap-3">
+                    <li key={`${line.productId}-${line.variantId}-${line.qty}`} className="bsn-fade flex items-start justify-between gap-3">
                       <div>
                         <Link to="/product/$slug" params={{ slug: line.productId }} className="font-medium">{line.name}</Link>
                         {line.variantLabel ? <p className="text-xs text-muted">{line.variantLabel}</p> : null}
