@@ -13,6 +13,15 @@ async function adminSql(userId: string, email: string) {
   return sql;
 }
 
+/** Admin datetime-local values are Nigerian local time. */
+function lagosStamp(value: unknown): string | null {
+  const text = clean(value, 40);
+  if (!text) return null;
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(text)) return text;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) return `${text.slice(0, 16)}:00+01:00`;
+  return null;
+}
+
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([sessionMiddleware])
   .handler(async ({ context }) => {
@@ -447,9 +456,12 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
         on conflict (id) do nothing`;
     }
     if (typeof raw.campaignTitle === "string" && raw.campaignTitle.trim()) {
-      await sql`insert into promotional_campaigns (id, title, subtitle, image_url, link_path, active)
+      const starts = lagosStamp(raw.campaignStarts);
+      const ends = lagosStamp(raw.campaignEnds);
+      await sql`insert into promotional_campaigns (id, title, subtitle, image_url, link_path, active, starts_at, ends_at)
         values (${crypto.randomUUID()}, ${clean(raw.campaignTitle, 80)}, ${clean(raw.campaignSubtitle, 160)},
-          ${clean(raw.campaignImage, 400) || "/products/hero.jpg"}, ${clean(raw.campaignLink, 80) || "/shop"}, true)`;
+          ${clean(raw.campaignImage, 400) || "/products/hero.jpg"}, ${clean(raw.campaignLink, 80) || "/shop"}, true,
+          ${starts}, ${ends})`;
     }
     await audit(sql, userId, "settings", "site", "default", "updated");
     return { ok: true };
