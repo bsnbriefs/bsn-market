@@ -1,9 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Home, LayoutGrid, Package, Search, ShoppingBag, Store, UserRound } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { getServerCart, syncCart } from "@/lib/market/commerce";
 import { useCartStore } from "@/lib/market/cart";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { getStorefront } from "@/lib/market/catalog";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
@@ -24,13 +26,19 @@ export function StoreShell({ children }: { children: ReactNode }) {
             <span className="ml-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Market</span>
           </Link>
           <p className="hidden text-xs text-muted sm:block">Nigeria · Naira</p>
-          <div className="ml-auto hidden items-center gap-4 text-sm font-medium md:flex">
-            <Link to="/shop" search={{ q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }}>Shop</Link>
-            <Link to="/request">Request</Link>
-            <Link to="/retailer" className="inline-flex items-center gap-1">
+          <div className="ml-auto hidden items-center gap-1 text-sm font-medium md:flex">
+            <TopLink to="/shop" search={{ q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }} active={path.startsWith("/shop")}>
+              Shop
+            </TopLink>
+            <TopLink to="/request" active={path.startsWith("/request")}>
+              Request
+            </TopLink>
+            <TopLink to="/retailer" active={path.startsWith("/retailer")}>
               <Store className="size-4" /> Sell
-            </Link>
-            <Link to="/account">Account</Link>
+            </TopLink>
+            <TopLink to="/account" active={path.startsWith("/account")}>
+              Account
+            </TopLink>
           </div>
         </div>
         {path !== "/" ? (
@@ -80,13 +88,36 @@ function CartBadge() {
   );
 }
 
-export function SearchForm({ initial = "" }: { initial?: string }) {
+export function SearchForm({
+  initial = "",
+  hints = [],
+}: {
+  initial?: string;
+  hints?: { label: string; category: string }[];
+}) {
   const navigate = useNavigate();
   const [q, setQ] = useState(initial);
+  const [open, setOpen] = useState(false);
   useEffect(() => setQ(initial), [initial]);
+  const remote = useQuery({
+    queryKey: ["search-categories"],
+    queryFn: async () => (await getStorefront()).categories,
+    enabled: open && hints.length === 0,
+    staleTime: 5 * 60_000,
+  });
+  const pool = hints.length
+    ? hints
+    : (remote.data ?? []).map((category) => ({ label: category.name, category: category.slug }));
+  const needle = q.trim().toLowerCase();
+  const matches = needle.length < 1 ? pool.slice(0, 6) : pool.filter((hint) => hint.label.toLowerCase().includes(needle)).slice(0, 6);
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    setOpen(false);
     void navigate({ to: "/shop", search: { q, category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "relevance", page: 1 } });
+  }
+  function goCategory(category: string) {
+    setOpen(false);
+    void navigate({ to: "/shop", search: { q: "", category, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 } });
   }
   return (
     <form onSubmit={onSubmit} className="relative" role="search">
@@ -94,11 +125,56 @@ export function SearchForm({ initial = "" }: { initial?: string }) {
       <input
         value={q}
         onChange={(event) => setQ(event.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 160)}
         placeholder="Search products, brands, markets"
         aria-label="Search products"
-        className="h-11 w-full rounded-full border border-border bg-surface pl-10 pr-4 text-base outline-none transition duration-200 focus:border-primary"
+        aria-expanded={open && matches.length > 0}
+        className="h-11 w-full rounded-full border border-border bg-surface pl-10 pr-4 text-base outline-none transition duration-200 focus:border-primary focus:shadow-[0_0_0_4px_rgba(12,107,77,0.12)]"
       />
+      {open && matches.length > 0 ? (
+        <ul className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
+          {matches.map((hint) => (
+            <li key={hint.category}>
+              <button
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  goCategory(hint.category);
+                }}
+                className="flex min-h-11 w-full items-center px-4 text-left text-sm transition-colors hover:bg-bg"
+              >
+                {hint.label}
+                <span className="ml-auto text-xs text-muted">Category</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </form>
+  );
+}
+
+function TopLink({
+  to,
+  search,
+  active,
+  children,
+}: {
+  to: string;
+  search?: Record<string, string | number>;
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      search={search}
+      className={`relative inline-flex items-center gap-1 rounded-full px-3 py-2 transition-colors ${active ? "text-primary" : "text-fg hover:bg-surface"}`}
+    >
+      {children}
+      <span className={`absolute inset-x-3 bottom-1 h-0.5 origin-left rounded-full bg-primary transition-transform duration-200 ${active ? "scale-x-100" : "scale-x-0"}`} />
+    </Link>
   );
 }
 
