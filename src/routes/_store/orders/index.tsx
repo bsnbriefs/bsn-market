@@ -26,7 +26,7 @@ function OrdersPage() {
       <ul className="mt-4 space-y-3">
         {(orders.data ?? []).map((order) => (
           <li key={order.id}>
-            <Link to="/orders/$id" params={{ id: order.id }} className="block rounded-2xl border border-border bg-surface p-4">
+            <Link to="/orders/$id" params={{ id: order.id }} className="block rounded-2xl border border-border bg-surface p-4 transition duration-200 hover:border-primary/40">
               <p className="font-semibold">{order.reference}</p>
               <p className="text-sm capitalize text-muted">{order.status.replaceAll("_", " ")}</p>
               <p className="text-sm">{order.total_kobo === null ? "Delivery quote pending" : formatNaira(Number(order.total_kobo))}</p>
