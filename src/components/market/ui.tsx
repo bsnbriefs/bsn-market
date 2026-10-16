@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ButtonHTMLAttributes, CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import { formatNaira } from "@/lib/market/money";
 
@@ -15,6 +15,50 @@ export type CardLike = {
 
 export function cn(...parts: Array<string | false | undefined>) {
   return twMerge(parts.filter(Boolean).join(" "));
+}
+
+export function Reveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          setPending(true);
+          return;
+        }
+        setShown(true);
+        observer.disconnect();
+      },
+      { threshold: 0.18, rootMargin: "0px 0px -6% 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
+      className={cn("bsn-reveal", pending && "is-pending", shown && "is-shown", className)}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function Button({
@@ -98,11 +142,11 @@ export function ProductCardView({
       params={{ slug: product.id }}
       style={style}
       className={cn(
-        "group flex w-full min-w-0 snap-start flex-col transition duration-300 ease-out active:scale-[0.98] md:hover:-translate-y-0.5",
+        "group flex w-full min-w-0 snap-start flex-col transition duration-300 ease-out active:scale-[0.98] md:hover:-translate-y-1",
         className,
       )}
     >
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-border ring-1 ring-transparent transition duration-300 group-hover:ring-primary/30 group-hover:shadow-md">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-border ring-1 ring-transparent transition duration-300 group-hover:ring-primary/30 group-hover:shadow-lg">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -157,12 +201,9 @@ export function ProductRail({ title, note, products }: { title: string; note?: s
       </div>
       <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
         {products.map((product, index) => (
-          <ProductCardView
-            key={product.id}
-            product={product}
-            className="bsn-rise w-40 shrink-0 md:w-auto"
-            style={{ animationDelay: `${Math.min(index, 7) * 45}ms` }}
-          />
+          <Reveal key={product.id} className="w-40 shrink-0 snap-start md:w-auto" delay={Math.min(index, 7) * 50}>
+            <ProductCardView product={product} />
+          </Reveal>
         ))}
       </div>
     </section>
