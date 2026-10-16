@@ -16,6 +16,7 @@ export type ProductCard = {
   categorySlug: string;
   categoryName: string;
   reviewCount: number;
+  createdAt: string;
 };
 
 const CARD_SQL = `
@@ -23,7 +24,8 @@ const CARD_SQL = `
          coalesce(c.slug, '') as category_slug, coalesce(c.name, '') as category_name,
          r.business_name, r.city as retailer_city, r.state as retailer_state,
          coalesce((select i.url from product_images i where i.product_id = p.id order by i.sort_order limit 1), '') as image_url,
-         coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count
+         coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count,
+         p.created_at::text as created_at
   from products p
   join retailer_profiles r on r.id = p.retailer_id
   left join product_categories c on c.id = p.category_id
@@ -44,6 +46,7 @@ type CardRow = {
   retailer_state: string;
   image_url: string;
   review_count: number;
+  created_at: string;
 };
 
 function toCard(row: CardRow): ProductCard {
@@ -61,6 +64,7 @@ function toCard(row: CardRow): ProductCard {
     categorySlug: row.category_slug,
     categoryName: row.category_name,
     reviewCount: Number(row.review_count),
+    createdAt: row.created_at,
   };
 }
 
@@ -70,8 +74,17 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
     select store_name, tagline, support_email, support_phone from site_settings where id = 'default'`;
   const categories = await sql<{ slug: string; name: string }>`
     select slug, name from product_categories order by sort_order, name`;
-  const campaigns = await sql<{ title: string; subtitle: string; image_url: string; link_path: string }>`
-    select title, subtitle, image_url, link_path from promotional_campaigns where active order by sort_order`;
+  const campaigns = await sql<{
+    id: string;
+    title: string;
+    subtitle: string;
+    image_url: string;
+    link_path: string;
+    starts_at: string | null;
+    ends_at: string | null;
+  }>`
+    select id, title, subtitle, image_url, link_path, starts_at::text as starts_at, ends_at::text as ends_at
+    from promotional_campaigns where active order by sort_order`;
   const featured = (await sql.query<CardRow>(`${CARD_SQL} and p.featured = true order by p.created_at desc limit 8`)).map(toCard);
   const newest = (await sql.query<CardRow>(`${CARD_SQL} order by p.created_at desc limit 8`)).map(toCard);
   const offers = (await sql.query<CardRow>(`${CARD_SQL} and p.compare_at_kobo is not null and p.compare_at_kobo > p.price_kobo order by p.created_at desc limit 8`)).map(toCard);
@@ -197,7 +210,8 @@ export const searchProducts = createServerFn({ method: "GET" })
               coalesce(c.slug, '') as category_slug, coalesce(c.name, '') as category_name,
               r.business_name, r.city as retailer_city, r.state as retailer_state,
               coalesce((select i.url from product_images i where i.product_id = p.id order by i.sort_order limit 1), '') as image_url,
-              coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count
+              coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count,
+              p.created_at::text as created_at
        from products p
        join retailer_profiles r on r.id = p.retailer_id
        left join product_categories c on c.id = p.category_id
@@ -236,7 +250,8 @@ export const getProduct = createServerFn({ method: "GET" })
               coalesce(c.slug, '') as category_slug, coalesce(c.name, '') as category_name,
               r.business_name, r.city as retailer_city, r.state as retailer_state, r.description as retailer_description,
               coalesce((select i.url from product_images i where i.product_id = p.id order by i.sort_order limit 1), '') as image_url,
-              coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count
+              coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count,
+              p.created_at::text as created_at
        from products p
        join retailer_profiles r on r.id = p.retailer_id
        left join product_categories c on c.id = p.category_id
