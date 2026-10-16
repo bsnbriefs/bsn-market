@@ -11,6 +11,7 @@ export type CardLike = {
   stock: number;
   imageUrl: string;
   retailerCity: string;
+  createdAt?: string;
 };
 
 export function cn(...parts: Array<string | false | undefined>) {
@@ -165,6 +166,9 @@ export function ProductCardView({
           <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-1 text-[11px] font-semibold text-accent-fg">
             −{percent}%
           </span>
+        ) : null}
+        {product.createdAt && Date.now() - new Date(product.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000 ? (
+          <span className="absolute bottom-2 left-2 rounded-full bg-surface/95 px-2 py-1 text-[11px] font-semibold text-primary">New</span>
         ) : null}
       </div>
       <p className="mt-2 line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
