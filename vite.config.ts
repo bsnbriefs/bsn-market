@@ -175,21 +175,11 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
-            rollupConfig: {
-              output: {
-                // Force a single SSR bundle so Vercel does not miss _ssr/*.mjs chunks
-                inlineDynamicImports: true,
-                manualChunks: undefined,
-              },
-            },
-            // Ensure SSR assets are included in the function package
-            vercel: {
-              functions: {
-                "api/**": {
-                  includeFiles: "**/*",
-                },
-              },
-            },
+            // Vite 8 splits the SSR service into `_ssr/router-*.mjs`. Vercel
+            // traces the function from index.mjs and drops that extra chunk,
+            // so every request 500s with ERR_MODULE_NOT_FOUND. One server
+            // file keeps the router in the traced entry.
+            inlineDynamicImports: true,
           }),
         ]
       : []),
