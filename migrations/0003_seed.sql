@@ -1,8 +1,8 @@
 insert into site_settings (id, store_name, tagline, support_email, support_phone, contact_address)
 values (
   'default',
-  'BSN Market',
-  'Your Market. Your Choice. Delivered.',
+  'SEEK',
+  'Building on Trust.',
   '',
   '',
   ''
@@ -177,7 +177,7 @@ insert into policies (slug, title, body) values
   ('terms', 'Terms and conditions', $pol$
 Draft for the business owner to review before launch. This is not legal advice and it is not a claim of regulatory approval.
 
-BSN Market is a marketplace operated under the Barrister Street Network. Independent retailers supply the products. BSN Market facilitates the listing, payment collection, and order record. BSN Market is not the manufacturer of retailer products unless a listing clearly says otherwise.
+SEEK is a marketplace operated under the SEEK. Independent retailers supply the products. SEEK facilitates the listing, payment collection, and order record. SEEK is not the manufacturer of retailer products unless a listing clearly says otherwise.
 
 By creating an account you agree to provide accurate contact and delivery details, to pay the amount confirmed on the server at checkout, and not to misuse another person's account.
 
@@ -186,7 +186,7 @@ $pol$),
   ('privacy', 'Privacy policy', $pol$
 Draft for the business owner to review before launch. This is not legal advice.
 
-BSN Market stores the account details, delivery addresses, and order records needed to run the marketplace. Retailers see only the name, phone number, and delivery address required to fulfil their part of an order. They do not see your sign-in password or card details. Card details are never stored on BSN Market.
+SEEK stores the account details, delivery addresses, and order records needed to run the marketplace. Retailers see only the name, phone number, and delivery address required to fulfil their part of an order. They do not see your sign-in password or card details. Card details are never stored on SEEK.
 
 Payment references are kept so an order can be matched to a verified Paystack transaction. Support messages are visible to you and to marketplace administrators.
 $pol$),
@@ -195,7 +195,7 @@ Draft for the business owner to review before launch. This is not legal advice.
 
 Retailers apply with their business details and wait for an administrator to approve them. Until approval, products cannot go live and new orders cannot be allocated.
 
-The retailer is responsible for the accuracy of prices, stock, descriptions, and lawful products. Commission is set by BSN Market, recorded on each order item at the time of the order, and cannot be edited by the retailer. Later commission changes do not rewrite old orders.
+The retailer is responsible for the accuracy of prices, stock, descriptions, and lawful products. Commission is set by SEEK, recorded on each order item at the time of the order, and cannot be edited by the retailer. Later commission changes do not rewrite old orders.
 
 Retailers must only use customer details to fulfil the order.
 $pol$),
@@ -211,7 +211,7 @@ $pol$),
   ('delivery', 'Delivery policy', $pol$
 Draft for the business owner to review before launch.
 
-Delivery fees are the amounts an administrator has configured for a state or city. Where no fee is configured, checkout creates a quote request instead of inventing a rate. BSN Market does not promise nationwide coverage.
+Delivery fees are the amounts an administrator has configured for a state or city. Where no fee is configured, checkout creates a quote request instead of inventing a rate. SEEK does not promise nationwide coverage.
 
 An order with more than one retailer is fulfilled separately. Each retailer has their own preparation and dispatch status. A retailer order is marked delivered only by that retailer or an administrator.
 

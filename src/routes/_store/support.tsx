@@ -9,7 +9,7 @@ import { Button, errText, Field, TextArea } from "@/components/market/ui";
 
 export const Route = createFileRoute("/_store/support")({
   loader: () => getStorefront(),
-  head: () => ({ meta: [{ title: "Support · BSN Market" }, { name: "description", content: "Contact BSN Market support." }] }),
+  head: () => ({ meta: [{ title: "Support · SEEK" }, { name: "description", content: "Contact SEEK support." }] }),
   component: SupportPage,
 });
 
@@ -37,7 +37,7 @@ function SupportPage() {
   return (
     <div className="max-w-xl">
       <h1 className="font-display text-3xl">Customer support</h1>
-      <p className="mt-2 text-sm text-muted">BSN Market connects you with retailers. The retailer supplies the product. Use this form for marketplace help.</p>
+      <p className="mt-2 text-sm text-muted">SEEK connects you with retailers. The retailer supplies the product. Use this form for marketplace help.</p>
       <dl className="mt-4 space-y-1 text-sm">
         <div><dt className="text-muted">Email</dt><dd>{store.supportEmail || "Not set yet. An administrator can add it."}</dd></div>
         <div><dt className="text-muted">Phone</dt><dd>{store.supportPhone || "Not set yet."}</dd></div>

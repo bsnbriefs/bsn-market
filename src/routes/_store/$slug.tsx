@@ -6,7 +6,7 @@ import { useCartStore } from "@/lib/market/cart";
 import { formatLagos, formatNaira } from "@/lib/market/money";
 import { Button, Money, ProductRail } from "@/components/market/ui";
 
-export const Route = createFileRoute("/_store/product/$slug")({
+export const Route = createFileRoute("/_store/$slug")({
   loader: async ({ params }) => {
     const product = await getProduct({ data: params.slug });
     if (!product) throw notFound();

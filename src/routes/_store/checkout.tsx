@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { getMe } from "@/lib/market/account";
 import { Button, errText, Field, Money } from "@/components/market/ui";
 
 export const Route = createFileRoute("/_store/checkout")({
-  head: () => ({ meta: [{ title: "Checkout · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Checkout · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: CheckoutPage,
 });
 
@@ -83,6 +83,9 @@ function CheckoutForm() {
           <li className={`rounded-full px-3 py-1 transition-colors ${busy ? "bg-primary text-primary-fg" : "bg-surface text-muted"}`}>2 · Paystack</li>
         </ol>
         <p className="text-sm text-muted">The server recalculates every price. Reaching this page does not mean you have paid.</p>
+        <p className="text-sm text-muted">
+          Read the <Link to="/policies/$slug" params={{ slug: "delivery" }} className="font-semibold text-link">delivery</Link> and <Link to="/policies/$slug" params={{ slug: "returns" }} className="font-semibold text-link">returns</Link> policies before you pay. They describe the current rules. They are not a delivery or refund guarantee.
+        </p>
         <Field name="name" required placeholder="Recipient name" defaultValue={address?.recipient || me.data?.profile.fullName || ""} aria-label="Recipient name" />
         <Field name="email" type="email" required placeholder="Email" defaultValue={me.data?.profile.email || ""} aria-label="Email" />
         <Field name="phone" required placeholder="Phone" defaultValue={address?.phone || me.data?.profile.phone || ""} aria-label="Phone" />
@@ -112,9 +115,14 @@ function CheckoutForm() {
         <p className="flex justify-between text-sm"><span>Discount</span><Money kobo={quote.data?.discountKobo ?? 0} /></p>
         <p className="flex justify-between text-sm"><span>Delivery</span>{quote.data?.deliveryKobo === null || quote.data?.deliveryKobo === undefined ? <span>Quote needed</span> : <Money kobo={quote.data.deliveryKobo} />}</p>
         <p className="mt-2 flex justify-between font-semibold"><span>Total</span>{quote.data?.totalKobo === null || quote.data?.totalKobo === undefined ? <span>Pending quote</span> : <Money kobo={quote.data.totalKobo} />}</p>
+        {items.some((item) => item.offerId) ? <p className="mt-2 text-xs text-muted">A Fair Deal price is included. It is the agreed product price, checked on the server. Delivery above is separate.</p> : null}
         {(quote.data?.retailerIds.length ?? 0) > 1 ? <p className="mt-2 text-xs text-muted">This cart has {quote.data?.retailerIds.length} retailers. Each one fulfils separately, and delivery is charged per retailer where a fee exists.</p> : null}
+        {quote.isFetching ? <p className="mt-3 text-sm text-muted">Checking live prices and stock…</p> : null}
+        {quote.isError ? <p className="mt-2 text-sm text-danger">{errText(quote.error)}</p> : null}
         {quote.data?.issues.map((issue) => <p key={issue} className="mt-2 text-sm text-danger">{issue}</p>)}
-        <Button className="mt-4 w-full" type="submit" disabled={busy || items.length === 0}>{busy ? "Sending order…" : "Place order"}</Button>
+        <Button className="mt-4 w-full" type="submit" disabled={busy || items.length === 0 || quote.isFetching || quote.isError || (quote.data?.issues.length ?? 0) > 0}>
+          {busy ? "Sending order…" : quote.isFetching ? "Checking price…" : "Place order"}
+        </Button>
       </aside>
     </form>
   );

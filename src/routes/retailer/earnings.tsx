@@ -4,7 +4,7 @@ import { getEarnings } from "@/lib/market/retailer";
 import { bpsToPercent, formatNaira } from "@/lib/market/money";
 
 export const Route = createFileRoute("/retailer/earnings")({
-  head: () => ({ meta: [{ title: "Earnings · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Earnings · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: EarningsPage,
 });
 

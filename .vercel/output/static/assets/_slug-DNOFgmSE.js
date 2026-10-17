@@ -1,2 +1,0 @@
-import{u as e}from"./createServerFn-D5m4cGPF.js";import{t}from"./jsx-runtime-BtH0gOTJ.js";import{n}from"./index-Qu0JN1yj.js";var r=t();function i(){let t=n.useLoaderData();if(!t)throw e();return(0,r.jsxs)(`article`,{className:`max-w-2xl`,children:[(0,r.jsx)(`h1`,{className:`font-display text-4xl`,children:t.title}),(0,r.jsx)(`div`,{className:`mt-4 space-y-3 text-sm leading-6`,children:t.body.split(`
-`).filter(e=>e.trim()).map(e=>(0,r.jsx)(`p`,{children:e},e.slice(0,40)))})]})}export{i as component};

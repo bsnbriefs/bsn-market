@@ -7,7 +7,7 @@ import { formatLagos, formatNaira } from "@/lib/market/money";
 import { EmptyState } from "@/components/market/ui";
 
 export const Route = createFileRoute("/_store/orders/")({
-  head: () => ({ meta: [{ title: "Orders · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Orders · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: OrdersPage,
 });
 

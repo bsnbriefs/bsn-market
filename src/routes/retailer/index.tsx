@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getRetailerDashboard } from "@/lib/market/retailer";
+import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
+import { getRetailerDashboard, submitAdCampaign } from "@/lib/market/retailer";
 import { formatNaira } from "@/lib/market/money";
-import { errText } from "@/components/market/ui";
+import { Button, errText, Field } from "@/components/market/ui";
 
 export const Route = createFileRoute("/retailer/")({
-  head: () => ({ meta: [{ title: "Retailer · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Retailer · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: RetailerHome,
 });
 
@@ -15,7 +17,7 @@ function RetailerHome() {
   if (dash.error) {
     return (
       <div>
-        <h1 className="font-display text-3xl">Sell on BSN Market</h1>
+        <h1 className="font-display text-3xl">Sell on SEEK</h1>
         <p className="mt-2 text-sm">{errText(dash.error)}</p>
         <Link to="/retailer/apply" className="mt-3 inline-block font-semibold text-primary">Start an application</Link>
       </div>
@@ -54,6 +56,35 @@ function RetailerHome() {
       <ul className="mt-2 space-y-1 text-sm">
         {data.recent.map((row) => <li key={row.reference}>{row.reference} · {row.status}</li>)}
       </ul>
+      {data.retailer.status === "approved" ? <AdRequest /> : null}
     </div>
+  );
+}
+
+function AdRequest() {
+  const [busy, setBusy] = useState(false);
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setBusy(true);
+    try {
+      await submitAdCampaign({ data: { title: form.get("title"), subtitle: form.get("subtitle"), productId: form.get("productId") } });
+      toast.success("Banner request sent for approval. It is not live yet.");
+      event.currentTarget.reset();
+    } catch (error) {
+      toast.error(errText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form onSubmit={onSubmit} className="mt-6 max-w-lg space-y-2">
+      <h2 className="font-display text-2xl">Request a homepage banner</h2>
+      <p className="text-sm text-muted">An administrator must approve it. There is no charge yet. Approved banners are labelled Sponsored.</p>
+      <Field name="title" required placeholder="Headline" aria-label="Headline" />
+      <Field name="subtitle" placeholder="Supporting text" aria-label="Supporting text" />
+      <Field name="productId" placeholder="Approved product id, optional" aria-label="Product id" />
+      <Button type="submit" disabled={busy}>{busy ? "Sending…" : "Submit for approval"}</Button>
+    </form>
   );
 }

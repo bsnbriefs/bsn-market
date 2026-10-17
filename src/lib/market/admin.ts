@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql, withTransaction } from "@/lib/db";
 import { audit, clean, ensureProfile, requireAdmin } from "./guard.ts";
 import { notifyUser } from "./notify.ts";
+import { evaluateProductAlerts } from "./radar.ts";
 import { nairaToKobo, percentToBps } from "./money.ts";
 import { MarketError, recordRefund, transitionFulfilment } from "./records.ts";
 import { sessionMiddleware, type SessionContext } from "./session.ts";
@@ -157,6 +158,7 @@ export const adminModerateProduct = createServerFn({ method: "POST" })
         href: "/retailer/products",
       });
     }
+    if (status === "approved") await evaluateProductAlerts(sql, id);
     return { ok: true };
   });
 
@@ -406,16 +408,16 @@ export const adminGetSettings = createServerFn({ method: "GET" })
     const campaigns = await sql<{
       id: string;
       title: string;
-      subtitle: string;
-      image_url: string;
-      link_path: string;
+      status: string;
       active: boolean;
-    }>`select id, title, subtitle, image_url, link_path, active from promotional_campaigns order by sort_order`;
+      retailer_id: string | null;
+      rejection_reason: string;
+    }>`select id, title, subtitle, image_url, link_path, active, status, retailer_id, rejection_reason from promotional_campaigns order by sort_order, title`;
     const categories = await sql<{ id: string; name: string }>`select id, name from product_categories order by sort_order`;
     return {
       settings: settings[0] ?? {
-        store_name: "BSN Market",
-        tagline: "",
+        store_name: "SEEK",
+        tagline: "Building on Trust.",
         support_email: "",
         support_phone: "",
         contact_address: "",
@@ -434,7 +436,7 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     const { userId, email } = context as SessionContext;
     const sql = await adminSql(userId, email);
     const raw = (data ?? {}) as Record<string, unknown>;
-    await sql`update site_settings set store_name = ${clean(raw.storeName, 60) || "BSN Market"},
+    await sql`update site_settings set store_name = ${clean(raw.storeName, 60) || "SEEK"},
       tagline = ${clean(raw.tagline, 120)}, support_email = ${clean(raw.supportEmail, 120)},
       support_phone = ${clean(raw.supportPhone, 30)}, contact_address = ${clean(raw.contactAddress, 200)}
       where id = 'default'`;
@@ -458,12 +460,28 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     if (typeof raw.campaignTitle === "string" && raw.campaignTitle.trim()) {
       const starts = lagosStamp(raw.campaignStarts);
       const ends = lagosStamp(raw.campaignEnds);
-      await sql`insert into promotional_campaigns (id, title, subtitle, image_url, link_path, active, starts_at, ends_at)
+      await sql`insert into promotional_campaigns (id, title, subtitle, image_url, link_path, active, starts_at, ends_at, status)
         values (${crypto.randomUUID()}, ${clean(raw.campaignTitle, 80)}, ${clean(raw.campaignSubtitle, 160)},
           ${clean(raw.campaignImage, 400) || "/products/hero.jpg"}, ${clean(raw.campaignLink, 80) || "/shop"}, true,
-          ${starts}, ${ends})`;
+          ${starts}, ${ends}, 'approved')`;
     }
     await audit(sql, userId, "settings", "site", "default", "updated");
+    return { ok: true };
+  });
+
+export const adminReviewCampaign = createServerFn({ method: "POST" })
+  .middleware([sessionMiddleware])
+  .validator((input: unknown) => input)
+  .handler(async ({ context, data }) => {
+    const { userId, email } = context as SessionContext;
+    const sql = await adminSql(userId, email);
+    const raw = (data ?? {}) as Record<string, unknown>;
+    const id = clean(raw.id, 80);
+    const decision = clean(raw.decision, 20);
+    if (decision !== "approved" && decision !== "rejected" && decision !== "paused") throw new MarketError("Unknown decision");
+    const reason = clean(raw.reason, 200);
+    await sql`update promotional_campaigns set status = ${decision}, active = ${decision === "approved"}, rejection_reason = ${reason} where id = ${id}`;
+    await audit(sql, userId, "campaign", "promotional_campaigns", id, decision);
     return { ok: true };
   });
 
@@ -491,4 +509,45 @@ export const adminCreateSettlement = createServerFn({ method: "POST" })
       await audit(tx, userId, "settlement", "retailer", retailerId, reference || id);
     });
     return { ok: true, note: "Settlement recorded. This does not move money by itself." };
+  });
+
+export const adminListReports = createServerFn({ method: "GET" })
+  .middleware([sessionMiddleware])
+  .handler(async ({ context }) => {
+    const { userId, email } = context as SessionContext;
+    const sql = await adminSql(userId, email);
+    return sql<{
+      id: string;
+      product_id: string;
+      retailer_id: string;
+      category: string;
+      body: string;
+      status: string;
+      admin_note: string;
+      created_at: string;
+      user_id: string;
+      business_name: string;
+    }>`select t.id, t.user_id, t.product_id, t.retailer_id, t.category, t.body, t.status, t.admin_note,
+        t.created_at::text as created_at, r.business_name
+      from trust_reports t
+      join retailer_profiles r on r.id = t.retailer_id
+      order by t.created_at desc limit 100`;
+  });
+
+export const adminResolveReport = createServerFn({ method: "POST" })
+  .middleware([sessionMiddleware])
+  .validator((input: unknown) => input)
+  .handler(async ({ context, data }) => {
+    const { userId, email } = context as SessionContext;
+    const sql = await adminSql(userId, email);
+    const raw = (data ?? {}) as Record<string, unknown>;
+    const status = clean(raw.status, 20);
+    if (!["open", "reviewing", "resolved"].includes(status)) throw new MarketError("Unknown report status");
+    const id = clean(raw.id, 80);
+    const rows = await sql<{ id: string }>`
+      update trust_reports set status = ${status}, admin_note = ${clean(raw.adminNote, 800)}
+      where id = ${id} returning id`;
+    if (!rows[0]) throw new MarketError("Report was not found");
+    await audit(sql, userId, "trust_report", "trust_report", id, status);
+    return { ok: true };
   });

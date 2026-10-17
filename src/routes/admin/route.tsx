@@ -16,6 +16,8 @@ const links = [
   { to: "/admin/orders", label: "Orders" },
   { to: "/admin/commission", label: "Commission" },
   { to: "/admin/requests", label: "Requests" },
+  { to: "/admin/fair", label: "Fair Deal" },
+  { to: "/admin/reports", label: "Reports" },
   { to: "/admin/support", label: "Support" },
   { to: "/admin/settings", label: "Settings" },
 ];

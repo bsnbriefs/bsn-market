@@ -9,21 +9,24 @@ function errorMessage(error: unknown): string {
   return FALLBACK_MESSAGE;
 }
 
-export function AppErrorComponent({ error }: ErrorComponentProps) {
+export function AppErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <main
       className={
-        "flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center " +
-        "bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50"
+        "flex min-h-[50vh] flex-col items-center justify-center gap-3 px-6 py-16 text-center " +
+        "bg-bg text-fg"
       }
     >
       <span className="text-red-500" aria-hidden="true">
         <TriangleAlert className="size-10" strokeWidth={2} />
       </span>
       <h1 className="text-lg font-semibold">Something went wrong</h1>
-      <p className="max-w-md text-sm break-words text-zinc-500 dark:text-zinc-400">
+      <p className="max-w-md text-sm break-words text-muted">
         {errorMessage(error)}
       </p>
+      <button type="button" onClick={() => reset()} className="seek-cta mt-2 h-11 rounded-full px-5 text-sm font-semibold text-white">
+        Try again
+      </button>
     </main>
   );
 }

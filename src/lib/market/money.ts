@@ -14,6 +14,7 @@ export type TrustedItem = {
   stock: number;
   commissionBps: number;
   returnEligible: boolean;
+  offerId?: string | null;
 };
 
 export type PricedLine = TrustedItem & {

@@ -7,7 +7,7 @@ import { formatNaira } from "@/lib/market/money";
 import { Button, errText, Field, TextArea } from "@/components/market/ui";
 
 export const Route = createFileRoute("/retailer/products")({
-  head: () => ({ meta: [{ title: "Products · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Products · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: ProductsPage,
 });
 
@@ -15,6 +15,10 @@ function ProductsPage() {
   const products = useQuery({ queryKey: ["my-products"], queryFn: () => listMyProducts() });
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [parentId, setParentId] = useState("");
+  const categories = products.data?.categories ?? [];
+  const parents = categories.filter((category) => !category.parent_id);
+  const children = categories.filter((category) => category.parent_id === parentId);
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -64,10 +68,18 @@ function ProductsPage() {
         <Field name="name" required placeholder="Name" aria-label="Product name" />
         <TextArea name="description" placeholder="Description" aria-label="Description" />
         <Field name="brand" placeholder="Brand" aria-label="Brand" />
-        <select name="categoryId" aria-label="Category" className="h-11 w-full rounded-xl border border-border bg-surface px-3">
+        <select name="parentCategory" aria-label="Category" value={parentId} onChange={(event) => setParentId(event.target.value)} className="h-11 w-full rounded-xl border border-border bg-surface px-3">
           <option value="">Category</option>
-          {(products.data?.categories ?? []).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          {parents.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
         </select>
+        {children.length > 0 ? (
+          <select name="categoryId" aria-label="Subcategory" defaultValue="" required className="h-11 w-full rounded-xl border border-border bg-surface px-3">
+            <option value="">Subcategory</option>
+            {children.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+        ) : (
+          <input type="hidden" name="categoryId" value={parentId} />
+        )}
         <Field name="priceNaira" required inputMode="decimal" placeholder="Price in naira" aria-label="Price" />
         <Field name="stock" type="number" min={0} defaultValue={0} placeholder="Stock if there are no variants" aria-label="Stock" />
         <TextArea name="variants" placeholder={"Variants, one per line: label, stock, extra naira\nM, 4, 0\nL, 2, 500"} aria-label="Variants" />

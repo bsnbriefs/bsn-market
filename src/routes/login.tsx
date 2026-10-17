@@ -3,9 +3,11 @@ import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { Button, errText, Field } from "@/components/market/ui";
+import { SeekLogo } from "@/components/market/brand";
+import { ThemeToggle } from "@/components/market/theme";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Sign in · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: LoginPage,
 });
 
@@ -37,7 +39,11 @@ function LoginPage() {
   }
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-10">
-      <p className="font-display text-3xl">BSN Market</p>
+      <div className="mb-4 flex justify-end">
+        <ThemeToggle />
+      </div>
+      <SeekLogo className="h-14" />
+      <p className="mt-3 text-sm font-medium text-primary">Building on Trust.</p>
       <h1 className="mt-2 text-lg font-semibold">{mode === "in" ? "Sign in" : "Create an account"}</h1>
       <p className="mt-1 text-sm text-muted">You can browse without an account. Sign in before you place an order.</p>
       {authEnabled ? (

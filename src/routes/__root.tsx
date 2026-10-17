@@ -11,18 +11,22 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BSN Market" },
-      { name: "description", content: "BSN Market is a multi-vendor marketplace. Your Market. Your Choice. Delivered." },
-      { name: "theme-color", content: "#0C6B4D" },
+      { title: "SEEK — Discover. Choose. Shop with Confidence." },
+      { name: "description", content: "SEEK is a multi-vendor marketplace. Building on Trust. Discover. Choose. Shop with Confidence." },
+      { property: "og:title", content: "SEEK" },
+      { property: "og:description", content: "Discover. Choose. Shop with Confidence." },
+      { property: "og:image", content: "/seek-social-share-1200x630.png" },
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/seek-icon-32.png" },
+      { rel: "apple-touch-icon", href: "/seek-icon-180.png" },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
       },
     ],
   }),
@@ -36,6 +40,11 @@ function Root() {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{var t=localStorage.getItem('seek-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='dark'?'#172521':'#ffffff')}catch(e){}",
+          }}
+        />
         <HeadContent />
       </head>
       <body>

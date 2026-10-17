@@ -12,8 +12,8 @@ import { formatNaira } from "@/lib/market/money";
 export const Route = createFileRoute("/_store/request")({
   head: () => ({
     meta: [
-      { title: "Request a product · BSN Market" },
-      { name: "description", content: "Ask BSN Market to source a product that is not listed. A request is not an order." },
+      { title: "Request a product · SEEK" },
+      { name: "description", content: "Ask SEEK to source a product that is not listed. A request is not an order." },
     ],
   }),
   component: RequestPage,

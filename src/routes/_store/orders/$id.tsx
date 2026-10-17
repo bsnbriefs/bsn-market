@@ -10,7 +10,7 @@ import { formatLagos, formatNaira } from "@/lib/market/money";
 import { Button, errText, Field } from "@/components/market/ui";
 
 export const Route = createFileRoute("/_store/orders/$id")({
-  head: () => ({ meta: [{ title: "Order · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Order · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: OrderPage,
 });
 

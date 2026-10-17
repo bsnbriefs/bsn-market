@@ -74,7 +74,8 @@ export const listMyProducts = createServerFn({ method: "GET" })
       moderation_reason: string;
     }>`select id, name, price_kobo, stock, status, category_id, description, brand, moderation_reason
        from products where retailer_id = ${retailer.id} order by updated_at desc`;
-    const categories = await sql<{ id: string; name: string }>`select id, name from product_categories order by sort_order`;
+    const categories = await sql<{ id: string; name: string; parent_id: string | null }>`
+      select id, name, parent_id from product_categories order by sort_order, name`;
     return { products, categories, retailer };
   });
 
@@ -94,6 +95,15 @@ export const saveMyProduct = createServerFn({ method: "POST" })
     const brand = clean(raw.brand, 60);
     const categoryId = clean(raw.categoryId, 40);
     if (name.length < 2) throw new MarketError("Enter a product name");
+    let storedCategory = categoryId || null;
+    if (categoryId) {
+      const chosen = await sql<{ id: string; kids: number }>`
+        select c.id, (select count(*)::int from product_categories child where child.parent_id = c.id) as kids
+        from product_categories c where c.id = ${categoryId}`;
+      if (!chosen[0]) throw new MarketError("Choose a category");
+      if (Number(chosen[0].kids) > 0) throw new MarketError("Choose a subcategory");
+      storedCategory = chosen[0].id;
+    }
     const priceKobo = nairaToKobo(clean(raw.priceNaira, 12));
     const images = Array.isArray(raw.images) ? raw.images.filter((url): url is string => typeof url === "string").slice(0, 4) : [];
     for (const image of images) assertImageRef(image);
@@ -118,7 +128,7 @@ export const saveMyProduct = createServerFn({ method: "POST" })
         throw new MarketError("You cannot edit that product");
       }
       const status = rows[0].status === "draft" && raw.submit !== true ? "draft" : "pending";
-      await sql`update products set name = ${name}, description = ${description}, brand = ${brand}, category_id = ${categoryId || null},
+      await sql`update products set name = ${name}, description = ${description}, brand = ${brand}, category_id = ${storedCategory},
         price_kobo = ${priceKobo}, stock = ${stock}, status = ${status}, return_eligible = ${raw.returnEligible !== false},
         updated_at = now() where id = ${existingId} and retailer_id = ${retailer.id}`;
       await sql`delete from product_images where product_id = ${existingId}`;
@@ -127,7 +137,7 @@ export const saveMyProduct = createServerFn({ method: "POST" })
       id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "item"}-${crypto.randomUUID().slice(0, 6)}`;
       const status = raw.submit === true ? "pending" : "draft";
       await sql`insert into products (id, slug, retailer_id, category_id, name, description, brand, price_kobo, stock, status, return_eligible)
-        values (${id}, ${id}, ${retailer.id}, ${categoryId || null}, ${name}, ${description}, ${brand}, ${priceKobo}, ${stock}, ${status}, ${raw.returnEligible !== false})`;
+        values (${id}, ${id}, ${retailer.id}, ${storedCategory}, ${name}, ${description}, ${brand}, ${priceKobo}, ${stock}, ${status}, ${raw.returnEligible !== false})`;
     }
     let sort = 0;
     for (const image of images) {
@@ -250,4 +260,27 @@ export const getEarnings = createServerFn({ method: "GET" })
       select id, amount_kobo, status, reference, created_at::text as created_at
       from retailer_settlements where retailer_id = ${retailer.id} order by created_at desc`;
     return { rows, settlements };
+  });
+
+export const submitAdCampaign = createServerFn({ method: "POST" })
+  .middleware([sessionMiddleware])
+  .validator((input: unknown) => input)
+  .handler(async ({ context, data }) => {
+    const { userId, email } = context as SessionContext;
+    const { sql, retailer } = await requireRetailer(userId, email);
+    if (retailer.status !== "approved") throw new MarketError("An administrator must approve your store before it can request a banner");
+    const raw = (data ?? {}) as Record<string, unknown>;
+    const title = clean(raw.title, 80);
+    const subtitle = clean(raw.subtitle, 160);
+    const productId = clean(raw.productId, 80);
+    if (title.length < 3) throw new MarketError("Enter a headline");
+    if (productId) {
+      const owned = await sql<{ id: string }>`select id from products where id = ${productId} and retailer_id = ${retailer.id} and status = 'approved'`;
+      if (!owned[0]) throw new MarketError("Choose one of your approved products");
+    }
+    await sql`insert into promotional_campaigns (id, title, subtitle, image_url, link_path, active, sort_order, retailer_id, status)
+      values (${crypto.randomUUID()}, ${title}, ${subtitle}, ${productId ? "" : "/products/hero.jpg"},
+        ${productId ? `/product/${productId}` : "/shop"}, false, 20, ${retailer.id}, 'submitted')`;
+    await audit(sql, userId, "campaign", "promotional_campaigns", retailer.id, "submitted");
+    return { ok: true };
   });

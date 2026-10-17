@@ -14,7 +14,7 @@ import {
   type CartLineInput,
   type Query,
 } from "./records.ts";
-import { sessionMiddleware, type SessionContext } from "./session.ts";
+import { optionalSessionMiddleware, sessionMiddleware, type SessionContext } from "./session.ts";
 
 function asQuery(sql: Awaited<ReturnType<typeof getSql>>): Query {
   return { query: (text, params) => sql.query(text, params) };
@@ -25,13 +25,14 @@ function linesOf(input: unknown): CartLineInput[] {
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, 30).flatMap((row) => {
     if (!row || typeof row !== "object") return [];
-    const item = row as { productId?: unknown; variantId?: unknown; qty?: unknown };
+    const item = row as { productId?: unknown; variantId?: unknown; qty?: unknown; offerId?: unknown };
     const qty = Number(item.qty);
     if (typeof item.productId !== "string" || !Number.isInteger(qty)) return [];
     return [
       {
         productId: item.productId.slice(0, 80),
         variantId: typeof item.variantId === "string" && item.variantId ? item.variantId.slice(0, 80) : null,
+        offerId: typeof item.offerId === "string" && item.offerId ? item.offerId.slice(0, 80) : null,
         qty,
       },
     ];
@@ -39,8 +40,9 @@ function linesOf(input: unknown): CartLineInput[] {
 }
 
 export const quoteCart = createServerFn({ method: "POST" })
+  .middleware([optionalSessionMiddleware])
   .validator((input: unknown) => input)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const body = (data ?? {}) as { items?: unknown; state?: unknown; city?: unknown; promoCode?: unknown };
     const sql = await getSql();
     const priced = await loadPricedCart(asQuery(sql), {
@@ -49,6 +51,7 @@ export const quoteCart = createServerFn({ method: "POST" })
       city: typeof body.city === "string" ? body.city : "",
       promoCode: typeof body.promoCode === "string" ? body.promoCode : "",
       lock: false,
+      buyerId: (context as SessionContext).userId,
     });
     return {
       lines: priced.lines.map((line) => ({
@@ -62,6 +65,7 @@ export const quoteCart = createServerFn({ method: "POST" })
         qty: line.qty,
         lineKobo: line.lineKobo,
         stock: line.stock,
+        offerId: line.offerId ?? null,
       })),
       retailerIds: priced.retailerIds,
       subtotalKobo: priced.subtotalKobo,
@@ -77,11 +81,12 @@ export const getServerCart = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { userId } = context as SessionContext;
     const sql = await getSql();
-    const rows = await sql<{ product_id: string; variant_id: string; qty: number }>`
-      select product_id, variant_id, qty from cart_items where user_id = ${userId}`;
+    const rows = await sql<{ product_id: string; variant_id: string; qty: number; offer_id: string }>`
+      select product_id, variant_id, qty, offer_id from cart_items where user_id = ${userId}`;
     return rows.map((row) => ({
       productId: row.product_id,
       variantId: row.variant_id || null,
+      offerId: row.offer_id || null,
       qty: Number(row.qty),
     }));
   });
@@ -96,8 +101,8 @@ export const syncCart = createServerFn({ method: "POST" })
       await sql`delete from cart_items where user_id = ${userId}`;
       for (const item of data) {
         if (item.qty < 1 || item.qty > 10) continue;
-        await sql`insert into cart_items (id, user_id, product_id, variant_id, qty)
-          values (${crypto.randomUUID()}, ${userId}, ${item.productId}, ${item.variantId ?? ""}, ${item.qty})`;
+        await sql`insert into cart_items (id, user_id, product_id, variant_id, qty, offer_id)
+          values (${crypto.randomUUID()}, ${userId}, ${item.productId}, ${item.variantId ?? ""}, ${item.qty}, ${item.offerId ?? ""})`;
       }
     });
     return { ok: true };

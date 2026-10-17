@@ -1,0 +1,13 @@
+{
+  "name": "SEEK",
+  "short_name": "SEEK",
+  "description": "Discover. Choose. Shop with Confidence.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#006B4F",
+  "icons": [
+    { "src": "/seek-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/seek-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

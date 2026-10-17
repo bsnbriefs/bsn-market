@@ -6,7 +6,7 @@ import { NIGERIAN_STATES } from "@/lib/market/states";
 import { Button, errText, Field, TextArea } from "@/components/market/ui";
 
 export const Route = createFileRoute("/retailer/apply")({
-  head: () => ({ meta: [{ title: "Apply to sell · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Apply to sell · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: ApplyPage,
 });
 

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql, withTransaction } from "@/lib/db";
 import { canReview } from "./authz.ts";
+import { reportCategory } from "./trust.ts";
 import { assertImageRef, clean, ensureProfile, ownRetailer, rateLimit, roleNames } from "./guard.ts";
 import { notifyAdmins, notifyUser } from "./notify.ts";
 import { claimAdmin, MarketError } from "./records.ts";
@@ -285,5 +286,34 @@ export const createReview = createServerFn({ method: "POST" })
     }
     await sql`insert into product_reviews (id, product_id, user_id, order_item_id, rating, body)
       values (${crypto.randomUUID()}, ${row.product_id}, ${userId}, ${orderItemId}, ${rating}, ${body})`;
+    return { ok: true };
+  });
+
+export const createTrustReport = createServerFn({ method: "POST" })
+  .middleware([sessionMiddleware])
+  .validator((input: unknown) => input)
+  .handler(async ({ context, data }) => {
+    const { userId, email } = context as SessionContext;
+    const raw = (data ?? {}) as Record<string, unknown>;
+    const category = reportCategory(clean(raw.category, 20));
+    const body = clean(raw.body, 800);
+    const productId = clean(raw.productId, 80);
+    if (!category) throw new MarketError("Choose a report reason");
+    if (body.length < 10) throw new MarketError("Describe the problem in at least 10 characters");
+    rateLimit(`trust-report:${userId}`, 5, 60 * 60 * 1000);
+    const sql = await getSql();
+    await ensureProfile(sql, userId, email);
+    const products = await sql<{ id: string; retailer_id: string }>`
+      select p.id, p.retailer_id from products p
+      join retailer_profiles r on r.id = p.retailer_id
+      where p.id = ${productId} and p.status = 'approved' and r.status = 'approved'`;
+    const product = products[0];
+    if (!product) throw new MarketError("That product is not a public listing");
+    const open = await sql<{ id: string }>`
+      select id from trust_reports where user_id = ${userId} and product_id = ${product.id} and status <> 'resolved'`;
+    if (open.length > 0) throw new MarketError("You already have an open report for this product");
+    await sql`insert into trust_reports (id, user_id, product_id, retailer_id, category, body)
+      values (${crypto.randomUUID()}, ${userId}, ${product.id}, ${product.retailer_id}, ${category}, ${body})`;
+    await notifyAdmins(sql, { title: "New listing report", body: `${category} report on ${product.id}. The listing stays up until an administrator decides.`, href: "/admin/reports" });
     return { ok: true };
   });

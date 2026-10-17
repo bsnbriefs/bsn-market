@@ -1,0 +1,40 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "BSN Market · Shop",
+      "hasCanvas": false,
+      "bodyTextLen": 1473,
+      "bodyTextHash": "b195dffe0f879f93773e5ef39dde5e9dc351c2546710b98bdd45d714ad599451",
+      "bodyTextPrefix": "BSNMARKET Nigeria · Naira Shop Request Sell Account BARRISTER ST",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "BSN Market · Shop",
+      "hasCanvas": false,
+      "bodyTextLen": 1461,
+      "bodyTextHash": "5888a482fc883997c528ec3c4ee05f7fb9814b9cedadffcfff521ad219fa6eea",
+      "bodyTextPrefix": "BSNMARKET BARRISTER STREET NETWORK Your Market. Your Choice. Del",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: body text replaced (similar length, page start changed)"
+  ]
+}

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { nairaToKobo } from "./money.ts";
+import { retailerBadge } from "./trust.ts";
 
 export type ProductCard = {
   id: string;
@@ -16,8 +17,13 @@ export type ProductCard = {
   categorySlug: string;
   categoryName: string;
   reviewCount: number;
+  rating: number;
+  variantCount: number;
+  variants: CardVariant[];
   createdAt: string;
 };
+
+export type CardVariant = { id: string; label: string; stock: number; delta: number };
 
 const CARD_SQL = `
   select p.id, p.name, p.price_kobo, p.compare_at_kobo, p.brand, p.stock,
@@ -25,6 +31,9 @@ const CARD_SQL = `
          r.business_name, r.city as retailer_city, r.state as retailer_state,
          coalesce((select i.url from product_images i where i.product_id = p.id order by i.sort_order limit 1), '') as image_url,
          coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count,
+         coalesce((select round(avg(rv.rating))::int from product_reviews rv where rv.product_id = p.id), 0) as rating,
+         coalesce((select count(*)::int from product_variants v where v.product_id = p.id), 0) as variant_count,
+         coalesce((select json_agg(json_build_object('id', v.id, 'label', v.label, 'stock', v.stock, 'delta', v.price_delta_kobo) order by v.label) from product_variants v where v.product_id = p.id), '[]'::json) as variants,
          p.created_at::text as created_at
   from products p
   join retailer_profiles r on r.id = p.retailer_id
@@ -46,8 +55,29 @@ type CardRow = {
   retailer_state: string;
   image_url: string;
   review_count: number;
+  rating: number;
+  variant_count: number;
+  variants: unknown;
   created_at: string;
 };
+
+function readVariants(value: unknown): CardVariant[] {
+  let raw = value;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as { id?: unknown; label?: unknown; stock?: unknown; delta?: unknown };
+    if (typeof row.id !== "string" || typeof row.label !== "string") return [];
+    return [{ id: row.id, label: row.label, stock: Number(row.stock) || 0, delta: Number(row.delta) || 0 }];
+  });
+}
 
 function toCard(row: CardRow): ProductCard {
   return {
@@ -64,6 +94,9 @@ function toCard(row: CardRow): ProductCard {
     categorySlug: row.category_slug,
     categoryName: row.category_name,
     reviewCount: Number(row.review_count),
+    rating: Number(row.rating ?? 0),
+    variantCount: Number(row.variant_count ?? 0),
+    variants: readVariants(row.variants),
     createdAt: row.created_at,
   };
 }
@@ -72,8 +105,11 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
   const sql = await getSql();
   const settings = await sql<{ store_name: string; tagline: string; support_email: string; support_phone: string }>`
     select store_name, tagline, support_email, support_phone from site_settings where id = 'default'`;
-  const categories = await sql<{ slug: string; name: string }>`
-    select slug, name from product_categories order by sort_order, name`;
+  const categories = await sql<{ slug: string; name: string; parent_slug: string }>`
+    select c.slug, c.name, coalesce(p.slug, '') as parent_slug
+    from product_categories c
+    left join product_categories p on p.id = c.parent_id
+    order by c.sort_order, c.name`;
   const campaigns = await sql<{
     id: string;
     title: string;
@@ -82,9 +118,14 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
     link_path: string;
     starts_at: string | null;
     ends_at: string | null;
+    retailer_id: string | null;
   }>`
-    select id, title, subtitle, image_url, link_path, starts_at::text as starts_at, ends_at::text as ends_at
-    from promotional_campaigns where active order by sort_order`;
+    select id, title, subtitle, image_url, link_path, starts_at::text as starts_at, ends_at::text as ends_at, retailer_id
+    from promotional_campaigns
+    where active = true and status = 'approved'
+      and (starts_at is null or starts_at <= now())
+      and (ends_at is null or ends_at > now())
+    order by sort_order`;
   const featured = (await sql.query<CardRow>(`${CARD_SQL} and p.featured = true order by p.created_at desc limit 8`)).map(toCard);
   const newest = (await sql.query<CardRow>(`${CARD_SQL} order by p.created_at desc limit 8`)).map(toCard);
   const offers = (await sql.query<CardRow>(`${CARD_SQL} and p.compare_at_kobo is not null and p.compare_at_kobo > p.price_kobo order by p.created_at desc limit 8`)).map(toCard);
@@ -103,9 +144,20 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
       return card ? [card] : [];
     });
   }
+  const recentListings = await sql<{ id: string; name: string; created_at: string }>`
+    select p.id, p.name, p.created_at::text as created_at
+    from products p
+    join retailer_profiles r on r.id = p.retailer_id
+    where p.status = 'approved' and r.status = 'approved'
+    order by p.created_at desc limit 5`;
+  const recentSellers = await sql<{ id: string; business_name: string; city: string; updated_at: string }>`
+    select id, business_name, city, updated_at::text as updated_at
+    from retailer_profiles
+    where status = 'approved'
+    order by updated_at desc limit 3`;
   return {
-    storeName: settings[0]?.store_name ?? "BSN Market",
-    tagline: settings[0]?.tagline ?? "Your Market. Your Choice. Delivered.",
+    storeName: settings[0]?.store_name ?? "SEEK",
+    tagline: settings[0]?.tagline ?? "Building on Trust.",
     supportEmail: settings[0]?.support_email ?? "",
     supportPhone: settings[0]?.support_phone ?? "",
     categories,
@@ -114,7 +166,28 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
     newest,
     offers,
     trending,
+    recentListings,
+    recentSellers,
   };
+});
+
+export const listCategoryTree = createServerFn({ method: "GET" }).handler(async () => {
+  const sql = await getSql();
+  const categories = await sql<{ slug: string; name: string; parent_slug: string; product_count: number }>`
+    select c.slug, c.name, coalesce(p.slug, '') as parent_slug,
+      (
+        select count(*)::int
+        from products pr
+        join retailer_profiles r on r.id = pr.retailer_id
+        join product_categories cc on cc.id = pr.category_id
+        left join product_categories parent on parent.id = cc.parent_id
+        where pr.status = 'approved' and r.status = 'approved'
+          and (cc.id = c.id or parent.id = c.id)
+      ) as product_count
+    from product_categories c
+    left join product_categories p on p.id = c.parent_id
+    order by c.sort_order, c.name`;
+  return { categories };
 });
 
 export type ShopQuery = {
@@ -126,6 +199,7 @@ export type ShopQuery = {
   min: string;
   max: string;
   sort: string;
+  available: string;
   page: number;
 };
 
@@ -143,6 +217,7 @@ function readShop(input: unknown): ShopQuery {
     min: typeof raw.min === "string" ? raw.min.slice(0, 12) : "",
     max: typeof raw.max === "string" ? raw.max.slice(0, 12) : "",
     sort: allowed.has(sort) ? sort : "newest",
+    available: raw.available === "1" ? "1" : "",
     page: Number.isInteger(page) && page > 0 ? Math.min(page, 100) : 1,
   };
 }
@@ -169,10 +244,14 @@ export const searchProducts = createServerFn({ method: "GET" })
       const c = params.length;
       where.push(`(p.name ilike $${a} or p.brand ilike $${b} or p.description ilike $${c})`);
     }
-    if (data.category) add("c.slug = $#", data.category);
+    if (data.category) {
+      params.push(data.category);
+      const slot = params.length;
+      where.push(`(c.slug = $${slot} or c.parent_id = (select id from product_categories where slug = $${slot}))`);
+    }
     if (data.retailer) add("r.id = $#", data.retailer);
     if (data.brand) add("p.brand = $#", data.brand);
-    if (data.state) add("r.state = $#", data.state);
+    if (data.available === "1") where.push("p.stock > 0");
     if (data.min.trim()) {
       try {
         add("p.price_kobo >= $#", nairaToKobo(data.min));
@@ -211,6 +290,9 @@ export const searchProducts = createServerFn({ method: "GET" })
               r.business_name, r.city as retailer_city, r.state as retailer_state,
               coalesce((select i.url from product_images i where i.product_id = p.id order by i.sort_order limit 1), '') as image_url,
               coalesce((select count(*)::int from product_reviews rv where rv.product_id = p.id), 0) as review_count,
+              coalesce((select round(avg(rv.rating))::int from product_reviews rv where rv.product_id = p.id), 0) as rating,
+              coalesce((select count(*)::int from product_variants v where v.product_id = p.id), 0) as variant_count,
+         coalesce((select json_agg(json_build_object('id', v.id, 'label', v.label, 'stock', v.stock, 'delta', v.price_delta_kobo) order by v.label) from product_variants v where v.product_id = p.id), '[]'::json) as variants,
               p.created_at::text as created_at
        from products p
        join retailer_profiles r on r.id = p.retailer_id
@@ -225,7 +307,11 @@ export const searchProducts = createServerFn({ method: "GET" })
        from products p join retailer_profiles r on r.id = p.retailer_id
        where p.status = 'approved' and r.status = 'approved'`,
     );
-    const categories = await sql<{ slug: string; name: string }>`select slug, name from product_categories order by sort_order`;
+    const categories = await sql<{ slug: string; name: string; parent_slug: string }>`
+      select c.slug, c.name, coalesce(p.slug, '') as parent_slug
+      from product_categories c
+      left join product_categories p on p.id = c.parent_id
+      order by c.sort_order, c.name`;
     return {
       products: rows.map(toCard),
       total: Number(countRows[0]?.n ?? 0),
@@ -269,6 +355,10 @@ export const getProduct = createServerFn({ method: "GET" })
       left join profiles pr on pr.user_id = rv.user_id
       where rv.product_id = ${product.id}
       order by rv.created_at desc limit 20`;
+    const checks = await sql<{ status: string }>`
+      select status from retailer_verification_records
+      where retailer_id = ${product.retailer_id}
+      order by created_at desc limit 1`;
     const related = (
       await sql.query<CardRow>(`${CARD_SQL} and c.slug = $1 and p.id <> $2 order by p.created_at desc limit 4`, [
         product.category_slug,
@@ -284,6 +374,7 @@ export const getProduct = createServerFn({ method: "GET" })
       deliveryDaysMin: product.delivery_days_min,
       deliveryDaysMax: product.delivery_days_max,
       retailerId: product.retailer_id,
+      retailerBadge: retailerBadge("approved", checks[0]?.status ?? null),
       retailerDescription: (product as { retailer_description?: string }).retailer_description ?? "",
       images: images.map((image) => image.url),
       variants: variants.map((variant) => ({

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent } from "react";
 import { toast } from "sonner";
-import { adminGetSettings, adminSaveSettings } from "@/lib/market/admin";
+import { adminGetSettings, adminReviewCampaign, adminSaveSettings } from "@/lib/market/admin";
 import { formatNaira } from "@/lib/market/money";
 import { NIGERIAN_STATES } from "@/lib/market/states";
 import { Button, errText, Field, TextArea } from "@/components/market/ui";
@@ -63,8 +63,25 @@ function SettingsPage() {
       <Field name="campaignLink" placeholder="/shop" aria-label="Banner link" />
       <Field name="campaignStarts" type="datetime-local" aria-label="Promotion starts, Lagos time" />
       <Field name="campaignEnds" type="datetime-local" aria-label="Promotion ends, Lagos time" />
-      <p className="text-xs text-muted">Leave the end blank for an ordinary banner. A countdown appears only when an end time is saved.</p>
+      <p className="text-xs text-muted">Leave the end blank for an ordinary banner. A countdown appears only when an end time is saved. Seller requests stay off the homepage until you approve them.</p>
       <Button type="submit">Save settings</Button>
+      <h2 className="font-display text-2xl">Campaign review</h2>
+      <ul className="space-y-2 text-sm">
+        {(settings.data?.campaigns ?? []).map((campaign) => {
+          const row = campaign as { id: string; title: string; status: string; retailer_id: string | null };
+          return (
+            <li key={row.id} className="rounded-xl border border-border p-3">
+              <p className="font-semibold">{row.title}</p>
+              <p className="text-muted capitalize">{row.status}{row.retailer_id ? " · seller" : " · platform"}</p>
+              <div className="mt-2 flex gap-2">
+                <button type="button" className="font-semibold text-primary" onClick={() => void adminReviewCampaign({ data: { id: row.id, decision: "approved" } }).then(() => queryClient.invalidateQueries({ queryKey: ["settings"] })).catch((error) => toast.error(errText(error)))}>Approve</button>
+                <button type="button" className="font-semibold text-muted" onClick={() => void adminReviewCampaign({ data: { id: row.id, decision: "paused" } }).then(() => queryClient.invalidateQueries({ queryKey: ["settings"] })).catch((error) => toast.error(errText(error)))}>Pause</button>
+                <button type="button" className="font-semibold text-danger" onClick={() => void adminReviewCampaign({ data: { id: row.id, decision: "rejected", reason: "Not approved" } }).then(() => queryClient.invalidateQueries({ queryKey: ["settings"] })).catch((error) => toast.error(errText(error)))}>Reject</button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </form>
   );
 }

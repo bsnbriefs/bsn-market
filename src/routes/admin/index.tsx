@@ -4,7 +4,7 @@ import { getAdminOverview } from "@/lib/market/admin";
 import { formatNaira } from "@/lib/market/money";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Admin · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Admin · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: AdminHome,
 });
 
@@ -29,7 +29,7 @@ function AdminHome() {
   return (
     <div>
       <h1 className="font-display text-3xl">Marketplace overview</h1>
-      <p className="text-sm text-muted">Gross merchandise value is the value of paid goods. Commission is BSN Market’s recorded fee, not profit. Paystack: {data.paystack ? "connected" : "not connected"}. Email: {data.emailConfigured ? "connected" : "not connected"}.</p>
+      <p className="text-sm text-muted">Gross merchandise value is the value of paid goods. Commission is SEEK’s recorded fee, not profit. Paystack: {data.paystack ? "connected" : "not connected"}. Email: {data.emailConfigured ? "connected" : "not connected"}.</p>
       <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3">
         {rows.map(([label, value]) => (
           <div key={label} className="rounded-2xl border border-border bg-surface p-3">

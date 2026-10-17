@@ -31,7 +31,7 @@ function isUnique(error: unknown): boolean {
   return code === "23505" || /duplicate key|unique constraint/i.test(message);
 }
 
-export type CartLineInput = { productId: string; variantId: string | null; qty: number };
+export type CartLineInput = { productId: string; variantId: string | null; qty: number; offerId?: string | null };
 
 type ProductRow = {
   id: string;
@@ -64,16 +64,19 @@ export async function loadPricedCart(
     city: string;
     promoCode: string;
     lock: boolean;
+    buyerId?: string;
   },
 ) {
   const merged = new Map<string, CartLineInput>();
+  const extraIssues: string[] = [];
   for (const line of input.lines) {
     if (!line.productId) continue;
-    const key = `${line.productId}::${line.variantId ?? ""}`;
+    const key = `${line.productId}::${line.variantId ?? ""}::${line.offerId ?? ""}`;
     const prev = merged.get(key);
     merged.set(key, {
       productId: line.productId,
       variantId: line.variantId,
+      offerId: line.offerId ?? null,
       qty: (prev?.qty ?? 0) + line.qty,
     });
   }
@@ -142,6 +145,14 @@ export async function loadPricedCart(
       unit += Number(variant.price_delta_kobo);
       stock = Number(variant.stock);
     }
+    if (line.offerId) {
+      const agreed = await agreedUnit(sql, line, input.buyerId ?? "", unit);
+      if (agreed.message) {
+        extraIssues.push(agreed.message);
+        continue;
+      }
+      unit = agreed.unit;
+    }
     let commissionBps = 0;
     try {
       commissionBps = pickCommission(mappedRules, {
@@ -175,12 +186,14 @@ export async function loadPricedCart(
     if (!promo || !asBool(promo.active)) {
       const draft = buildCheckoutDraft({ items, deliveryFeeEach, discountBps: 0 });
       draft.issues.push("That discount code is not valid");
+      draft.issues = [...extraIssues, ...draft.issues.filter((issue) => issue !== "Your cart is empty")];
       return { ...draft, promoCode: "" };
     }
     discountBps = Number(promo.bps_off);
     minSubtotal = Number(promo.min_subtotal_kobo);
   }
   const draft = buildCheckoutDraft({ items, deliveryFeeEach, discountBps, minSubtotalKobo: minSubtotal });
+  draft.issues = [...extraIssues, ...draft.issues.filter((issue) => extraIssues.length === 0 || issue !== "Your cart is empty")];
   return { ...draft, promoCode: discountBps > 0 ? code : "" };
 }
 
@@ -200,6 +213,43 @@ function blankItem(line: CartLineInput, productStatus: string): TrustedItem {
     commissionBps: 0,
     returnEligible: false,
   };
+}
+
+async function agreedUnit(
+  sql: Query,
+  line: CartLineInput,
+  buyerId: string,
+  catalogueUnit: number,
+): Promise<{ unit: number; message: string | null }> {
+  if (!buyerId) return { unit: catalogueUnit, message: "Sign in to buy an agreed Fair Deal price" };
+  const rows = await sql.query<{
+    price_kobo: number;
+    status: string;
+    product_id: string;
+    variant_id: string;
+    buyer_id: string;
+    request_status: string;
+    qty: number;
+    offer_open: boolean;
+    request_open: boolean;
+  }>(
+    `select o.price_kobo, o.status, o.product_id, o.variant_id, r.user_id as buyer_id, r.status as request_status, r.qty,
+            o.expires_at > now() as offer_open, r.expires_at > now() as request_open
+     from fair_offers o join fair_requests r on r.id = o.request_id where o.id = $1`,
+    [line.offerId],
+  );
+  const row = rows[0];
+  if (!row || row.buyer_id !== buyerId) return { unit: catalogueUnit, message: "That deal is not on your account" };
+  if (row.status !== "selected" || row.request_status !== "fulfilled" || !asBool(row.offer_open) || !asBool(row.request_open)) {
+    return { unit: catalogueUnit, message: "That deal is no longer available at the agreed price" };
+  }
+  if (row.product_id !== line.productId || (row.variant_id || "") !== (line.variantId ?? "")) {
+    return { unit: catalogueUnit, message: "That deal does not match this product" };
+  }
+  if (line.qty > Number(row.qty)) return { unit: catalogueUnit, message: "This deal only covers the requested quantity" };
+  const price = Number(row.price_kobo);
+  if (price > catalogueUnit) return { unit: catalogueUnit, message: "The listing is now cheaper than this offer. Buy it at the listed price." };
+  return { unit: price, message: null };
 }
 
 function knownItem(
@@ -226,6 +276,7 @@ function knownItem(
     stock,
     commissionBps,
     returnEligible: asBool(product.return_eligible),
+    offerId: line.offerId ?? null,
   };
 }
 
@@ -291,11 +342,12 @@ export async function createOrderRecord(
     city: input.customer.city,
     promoCode: input.promoCode,
     lock: true,
+    buyerId: input.userId,
   });
   if (priced.issues.length > 0) throw new MarketError(priced.issues[0]);
 
   const orderId = crypto.randomUUID();
-  const reference = `BSN-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const reference = `SEEK-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
   const status = priced.totalKobo === null ? "awaiting_quote" : "pending_payment";
   try {
     await sql.query(
@@ -435,6 +487,8 @@ export async function releaseOrderStock(sql: Query, orderId: string): Promise<vo
     }
     if (item.product_id) {
       await sql.query(`update products set stock = stock + $1 where id = $2`, [item.qty, item.product_id]);
+      const { evaluateProductAlerts } = await import("./radar.ts");
+      await evaluateProductAlerts(sql, item.product_id);
     }
   }
 }
@@ -622,6 +676,8 @@ export async function transitionFulfilment(
       }
       if (item.product_id) {
         await sql.query(`update products set stock = stock + $1 where id = $2`, [item.qty, item.product_id]);
+        const { evaluateProductAlerts } = await import("./radar.ts");
+        await evaluateProductAlerts(sql, item.product_id);
       }
     }
   }

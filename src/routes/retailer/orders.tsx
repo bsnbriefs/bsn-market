@@ -15,7 +15,7 @@ const next: Record<string, string[]> = {
 };
 
 export const Route = createFileRoute("/retailer/orders")({
-  head: () => ({ meta: [{ title: "Fulfilment · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Fulfilment · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: RetailerOrders,
 });
 

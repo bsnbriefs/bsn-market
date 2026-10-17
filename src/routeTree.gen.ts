@@ -17,15 +17,21 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoreIndexRouteImport } from './routes/_store/index'
 import { Route as StoreAccountRouteImport } from './routes/_store/account'
+import { Route as StoreBundleRouteImport } from './routes/_store/bundle'
 import { Route as StoreCartRouteImport } from './routes/_store/cart'
 import { Route as StoreCheckoutRouteImport } from './routes/_store/checkout'
+import { Route as StoreCompanionRouteImport } from './routes/_store/companion'
+import { Route as StoreFairRouteImport } from './routes/_store/fair'
+import { Route as StoreRadarRouteImport } from './routes/_store/radar'
 import { Route as StoreRequestRouteImport } from './routes/_store/request'
 import { Route as StoreShopRouteImport } from './routes/_store/shop'
 import { Route as StoreSupportRouteImport } from './routes/_store/support'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCommissionRouteImport } from './routes/admin/commission'
+import { Route as AdminFairRouteImport } from './routes/admin/fair'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminProductsRouteImport } from './routes/admin/products'
+import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminRequestsRouteImport } from './routes/admin/requests'
 import { Route as AdminRetailersRouteImport } from './routes/admin/retailers'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
@@ -33,8 +39,12 @@ import { Route as AdminSupportRouteImport } from './routes/admin/support'
 import { Route as RetailerIndexRouteImport } from './routes/retailer/index'
 import { Route as RetailerApplyRouteImport } from './routes/retailer/apply'
 import { Route as RetailerEarningsRouteImport } from './routes/retailer/earnings'
+import { Route as RetailerFairRouteImport } from './routes/retailer/fair'
 import { Route as RetailerOrdersRouteImport } from './routes/retailer/orders'
 import { Route as RetailerProductsRouteImport } from './routes/retailer/products'
+import { Route as StoreCategoriesIndexRouteImport } from './routes/_store/categories/index'
+import { Route as StoreCategoriesSlugRouteImport } from './routes/_store/categories/$slug'
+import { Route as StoreFairIdRouteImport } from './routes/_store/fair/$id'
 import { Route as StoreOrdersIndexRouteImport } from './routes/_store/orders/index'
 import { Route as StoreOrdersIdRouteImport } from './routes/_store/orders/$id'
 import { Route as StorePoliciesSlugRouteImport } from './routes/_store/policies/$slug'
@@ -81,6 +91,11 @@ const StoreAccountRoute = StoreAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreBundleRoute = StoreBundleRouteImport.update({
+  id: '/bundle',
+  path: '/bundle',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreCartRoute = StoreCartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -89,6 +104,21 @@ const StoreCartRoute = StoreCartRouteImport.update({
 const StoreCheckoutRoute = StoreCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreCompanionRoute = StoreCompanionRouteImport.update({
+  id: '/companion',
+  path: '/companion',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreFairRoute = StoreFairRouteImport.update({
+  id: '/fair',
+  path: '/fair',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreRadarRoute = StoreRadarRouteImport.update({
+  id: '/radar',
+  path: '/radar',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreRequestRoute = StoreRequestRouteImport.update({
@@ -116,6 +146,11 @@ const AdminCommissionRoute = AdminCommissionRouteImport.update({
   path: '/commission',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminFairRoute = AdminFairRouteImport.update({
+  id: '/fair',
+  path: '/fair',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -124,6 +159,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminRequestsRoute = AdminRequestsRouteImport.update({
@@ -161,6 +201,11 @@ const RetailerEarningsRoute = RetailerEarningsRouteImport.update({
   path: '/earnings',
   getParentRoute: () => RetailerRouteRoute,
 } as any)
+const RetailerFairRoute = RetailerFairRouteImport.update({
+  id: '/fair',
+  path: '/fair',
+  getParentRoute: () => RetailerRouteRoute,
+} as any)
 const RetailerOrdersRoute = RetailerOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -170,6 +215,21 @@ const RetailerProductsRoute = RetailerProductsRouteImport.update({
   id: '/products',
   path: '/products',
   getParentRoute: () => RetailerRouteRoute,
+} as any)
+const StoreCategoriesIndexRoute = StoreCategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreCategoriesSlugRoute = StoreCategoriesSlugRouteImport.update({
+  id: '/categories/$slug',
+  path: '/categories/$slug',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreFairIdRoute = StoreFairIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => StoreFairRoute,
 } as any)
 const StoreOrdersIndexRoute = StoreOrdersIndexRouteImport.update({
   id: '/orders/',
@@ -210,29 +270,39 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof StoreAccountRoute
+  '/bundle': typeof StoreBundleRoute
   '/cart': typeof StoreCartRoute
   '/checkout': typeof StoreCheckoutRoute
+  '/companion': typeof StoreCompanionRoute
+  '/fair': typeof StoreFairRouteWithChildren
+  '/radar': typeof StoreRadarRoute
   '/request': typeof StoreRequestRoute
   '/shop': typeof StoreShopRoute
   '/support': typeof StoreSupportRoute
   '/admin/commission': typeof AdminCommissionRoute
+  '/admin/fair': typeof AdminFairRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRoute
   '/admin/retailers': typeof AdminRetailersRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/retailer/apply': typeof RetailerApplyRoute
   '/retailer/earnings': typeof RetailerEarningsRoute
+  '/retailer/fair': typeof RetailerFairRoute
   '/retailer/orders': typeof RetailerOrdersRoute
   '/retailer/products': typeof RetailerProductsRoute
   '/admin/': typeof AdminIndexRoute
   '/retailer/': typeof RetailerIndexRoute
+  '/categories/$slug': typeof StoreCategoriesSlugRoute
+  '/fair/$id': typeof StoreFairIdRoute
   '/orders/$id': typeof StoreOrdersIdRoute
   '/policies/$slug': typeof StorePoliciesSlugRoute
   '/product/$slug': typeof StoreProductSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/categories/': typeof StoreCategoriesIndexRoute
   '/orders/': typeof StoreOrdersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -240,30 +310,40 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof StoreAccountRoute
+  '/bundle': typeof StoreBundleRoute
   '/cart': typeof StoreCartRoute
   '/checkout': typeof StoreCheckoutRoute
+  '/companion': typeof StoreCompanionRoute
+  '/fair': typeof StoreFairRouteWithChildren
+  '/radar': typeof StoreRadarRoute
   '/request': typeof StoreRequestRoute
   '/shop': typeof StoreShopRoute
   '/support': typeof StoreSupportRoute
   '/admin/commission': typeof AdminCommissionRoute
+  '/admin/fair': typeof AdminFairRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRoute
   '/admin/retailers': typeof AdminRetailersRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/retailer/apply': typeof RetailerApplyRoute
   '/retailer/earnings': typeof RetailerEarningsRoute
+  '/retailer/fair': typeof RetailerFairRoute
   '/retailer/orders': typeof RetailerOrdersRoute
   '/retailer/products': typeof RetailerProductsRoute
   '/': typeof StoreIndexRoute
   '/admin': typeof AdminIndexRoute
   '/retailer': typeof RetailerIndexRoute
+  '/categories/$slug': typeof StoreCategoriesSlugRoute
+  '/fair/$id': typeof StoreFairIdRoute
   '/orders/$id': typeof StoreOrdersIdRoute
   '/policies/$slug': typeof StorePoliciesSlugRoute
   '/product/$slug': typeof StoreProductSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/categories': typeof StoreCategoriesIndexRoute
   '/orders': typeof StoreOrdersIndexRoute
 }
 export interface FileRoutesById {
@@ -275,30 +355,40 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_store/account': typeof StoreAccountRoute
+  '/_store/bundle': typeof StoreBundleRoute
   '/_store/cart': typeof StoreCartRoute
   '/_store/checkout': typeof StoreCheckoutRoute
+  '/_store/companion': typeof StoreCompanionRoute
+  '/_store/fair': typeof StoreFairRouteWithChildren
+  '/_store/radar': typeof StoreRadarRoute
   '/_store/request': typeof StoreRequestRoute
   '/_store/shop': typeof StoreShopRoute
   '/_store/support': typeof StoreSupportRoute
   '/admin/commission': typeof AdminCommissionRoute
+  '/admin/fair': typeof AdminFairRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/requests': typeof AdminRequestsRoute
   '/admin/retailers': typeof AdminRetailersRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/retailer/apply': typeof RetailerApplyRoute
   '/retailer/earnings': typeof RetailerEarningsRoute
+  '/retailer/fair': typeof RetailerFairRoute
   '/retailer/orders': typeof RetailerOrdersRoute
   '/retailer/products': typeof RetailerProductsRoute
   '/_store/': typeof StoreIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/retailer/': typeof RetailerIndexRoute
+  '/_store/categories/$slug': typeof StoreCategoriesSlugRoute
+  '/_store/fair/$id': typeof StoreFairIdRoute
   '/_store/orders/$id': typeof StoreOrdersIdRoute
   '/_store/policies/$slug': typeof StorePoliciesSlugRoute
   '/_store/product/$slug': typeof StoreProductSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/_store/categories/': typeof StoreCategoriesIndexRoute
   '/_store/orders/': typeof StoreOrdersIndexRoute
 }
 export interface FileRouteTypes {
@@ -311,29 +401,39 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/account'
+    | '/bundle'
     | '/cart'
     | '/checkout'
+    | '/companion'
+    | '/fair'
+    | '/radar'
     | '/request'
     | '/shop'
     | '/support'
     | '/admin/commission'
+    | '/admin/fair'
     | '/admin/orders'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/requests'
     | '/admin/retailers'
     | '/admin/settings'
     | '/admin/support'
     | '/retailer/apply'
     | '/retailer/earnings'
+    | '/retailer/fair'
     | '/retailer/orders'
     | '/retailer/products'
     | '/admin/'
     | '/retailer/'
+    | '/categories/$slug'
+    | '/fair/$id'
     | '/orders/$id'
     | '/policies/$slug'
     | '/product/$slug'
     | '/api/auth/$'
     | '/api/paystack/webhook'
+    | '/categories/'
     | '/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -341,30 +441,40 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/account'
+    | '/bundle'
     | '/cart'
     | '/checkout'
+    | '/companion'
+    | '/fair'
+    | '/radar'
     | '/request'
     | '/shop'
     | '/support'
     | '/admin/commission'
+    | '/admin/fair'
     | '/admin/orders'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/requests'
     | '/admin/retailers'
     | '/admin/settings'
     | '/admin/support'
     | '/retailer/apply'
     | '/retailer/earnings'
+    | '/retailer/fair'
     | '/retailer/orders'
     | '/retailer/products'
     | '/'
     | '/admin'
     | '/retailer'
+    | '/categories/$slug'
+    | '/fair/$id'
     | '/orders/$id'
     | '/policies/$slug'
     | '/product/$slug'
     | '/api/auth/$'
     | '/api/paystack/webhook'
+    | '/categories'
     | '/orders'
   id:
     | '__root__'
@@ -375,30 +485,40 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/_store/account'
+    | '/_store/bundle'
     | '/_store/cart'
     | '/_store/checkout'
+    | '/_store/companion'
+    | '/_store/fair'
+    | '/_store/radar'
     | '/_store/request'
     | '/_store/shop'
     | '/_store/support'
     | '/admin/commission'
+    | '/admin/fair'
     | '/admin/orders'
     | '/admin/products'
+    | '/admin/reports'
     | '/admin/requests'
     | '/admin/retailers'
     | '/admin/settings'
     | '/admin/support'
     | '/retailer/apply'
     | '/retailer/earnings'
+    | '/retailer/fair'
     | '/retailer/orders'
     | '/retailer/products'
     | '/_store/'
     | '/admin/'
     | '/retailer/'
+    | '/_store/categories/$slug'
+    | '/_store/fair/$id'
     | '/_store/orders/$id'
     | '/_store/policies/$slug'
     | '/_store/product/$slug'
     | '/api/auth/$'
     | '/api/paystack/webhook'
+    | '/_store/categories/'
     | '/_store/orders/'
   fileRoutesById: FileRoutesById
 }
@@ -471,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreAccountRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/_store/bundle': {
+      id: '/_store/bundle'
+      path: '/bundle'
+      fullPath: '/bundle'
+      preLoaderRoute: typeof StoreBundleRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/_store/cart': {
       id: '/_store/cart'
       path: '/cart'
@@ -483,6 +610,27 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof StoreCheckoutRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/companion': {
+      id: '/_store/companion'
+      path: '/companion'
+      fullPath: '/companion'
+      preLoaderRoute: typeof StoreCompanionRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/fair': {
+      id: '/_store/fair'
+      path: '/fair'
+      fullPath: '/fair'
+      preLoaderRoute: typeof StoreFairRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/radar': {
+      id: '/_store/radar'
+      path: '/radar'
+      fullPath: '/radar'
+      preLoaderRoute: typeof StoreRadarRouteImport
       parentRoute: typeof StoreRoute
     }
     '/_store/request': {
@@ -520,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommissionRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/fair': {
+      id: '/admin/fair'
+      path: '/fair'
+      fullPath: '/admin/fair'
+      preLoaderRoute: typeof AdminFairRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/orders'
@@ -532,6 +687,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/admin/products'
       preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/requests': {
@@ -583,6 +745,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RetailerEarningsRouteImport
       parentRoute: typeof RetailerRouteRoute
     }
+    '/retailer/fair': {
+      id: '/retailer/fair'
+      path: '/fair'
+      fullPath: '/retailer/fair'
+      preLoaderRoute: typeof RetailerFairRouteImport
+      parentRoute: typeof RetailerRouteRoute
+    }
     '/retailer/orders': {
       id: '/retailer/orders'
       path: '/orders'
@@ -596,6 +765,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/retailer/products'
       preLoaderRoute: typeof RetailerProductsRouteImport
       parentRoute: typeof RetailerRouteRoute
+    }
+    '/_store/categories/': {
+      id: '/_store/categories/'
+      path: '/categories'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof StoreCategoriesIndexRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/categories/$slug': {
+      id: '/_store/categories/$slug'
+      path: '/categories/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof StoreCategoriesSlugRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/_store/fair/$id': {
+      id: '/_store/fair/$id'
+      path: '/$id'
+      fullPath: '/fair/$id'
+      preLoaderRoute: typeof StoreFairIdRouteImport
+      parentRoute: typeof StoreFairRoute
     }
     '/_store/orders/': {
       id: '/_store/orders/'
@@ -644,8 +834,10 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteRouteChildren {
   AdminCommissionRoute: typeof AdminCommissionRoute
+  AdminFairRoute: typeof AdminFairRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminRequestsRoute: typeof AdminRequestsRoute
   AdminRetailersRoute: typeof AdminRetailersRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -655,8 +847,10 @@ interface AdminRouteRouteChildren {
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCommissionRoute: AdminCommissionRoute,
+  AdminFairRoute: AdminFairRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminRequestsRoute: AdminRequestsRoute,
   AdminRetailersRoute: AdminRetailersRoute,
   AdminSettingsRoute: AdminSettingsRoute,
@@ -671,6 +865,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface RetailerRouteRouteChildren {
   RetailerApplyRoute: typeof RetailerApplyRoute
   RetailerEarningsRoute: typeof RetailerEarningsRoute
+  RetailerFairRoute: typeof RetailerFairRoute
   RetailerOrdersRoute: typeof RetailerOrdersRoute
   RetailerProductsRoute: typeof RetailerProductsRoute
   RetailerIndexRoute: typeof RetailerIndexRoute
@@ -679,6 +874,7 @@ interface RetailerRouteRouteChildren {
 const RetailerRouteRouteChildren: RetailerRouteRouteChildren = {
   RetailerApplyRoute: RetailerApplyRoute,
   RetailerEarningsRoute: RetailerEarningsRoute,
+  RetailerFairRoute: RetailerFairRoute,
   RetailerOrdersRoute: RetailerOrdersRoute,
   RetailerProductsRoute: RetailerProductsRoute,
   RetailerIndexRoute: RetailerIndexRoute,
@@ -688,31 +884,55 @@ const RetailerRouteRouteWithChildren = RetailerRouteRoute._addFileChildren(
   RetailerRouteRouteChildren,
 )
 
+interface StoreFairRouteChildren {
+  StoreFairIdRoute: typeof StoreFairIdRoute
+}
+
+const StoreFairRouteChildren: StoreFairRouteChildren = {
+  StoreFairIdRoute: StoreFairIdRoute,
+}
+
+const StoreFairRouteWithChildren = StoreFairRoute._addFileChildren(
+  StoreFairRouteChildren,
+)
+
 interface StoreRouteChildren {
   StoreAccountRoute: typeof StoreAccountRoute
+  StoreBundleRoute: typeof StoreBundleRoute
   StoreCartRoute: typeof StoreCartRoute
   StoreCheckoutRoute: typeof StoreCheckoutRoute
+  StoreCompanionRoute: typeof StoreCompanionRoute
+  StoreFairRoute: typeof StoreFairRouteWithChildren
+  StoreRadarRoute: typeof StoreRadarRoute
   StoreRequestRoute: typeof StoreRequestRoute
   StoreShopRoute: typeof StoreShopRoute
   StoreSupportRoute: typeof StoreSupportRoute
   StoreIndexRoute: typeof StoreIndexRoute
+  StoreCategoriesSlugRoute: typeof StoreCategoriesSlugRoute
   StoreOrdersIdRoute: typeof StoreOrdersIdRoute
   StorePoliciesSlugRoute: typeof StorePoliciesSlugRoute
   StoreProductSlugRoute: typeof StoreProductSlugRoute
+  StoreCategoriesIndexRoute: typeof StoreCategoriesIndexRoute
   StoreOrdersIndexRoute: typeof StoreOrdersIndexRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
   StoreAccountRoute: StoreAccountRoute,
+  StoreBundleRoute: StoreBundleRoute,
   StoreCartRoute: StoreCartRoute,
   StoreCheckoutRoute: StoreCheckoutRoute,
+  StoreCompanionRoute: StoreCompanionRoute,
+  StoreFairRoute: StoreFairRouteWithChildren,
+  StoreRadarRoute: StoreRadarRoute,
   StoreRequestRoute: StoreRequestRoute,
   StoreShopRoute: StoreShopRoute,
   StoreSupportRoute: StoreSupportRoute,
   StoreIndexRoute: StoreIndexRoute,
+  StoreCategoriesSlugRoute: StoreCategoriesSlugRoute,
   StoreOrdersIdRoute: StoreOrdersIdRoute,
   StorePoliciesSlugRoute: StorePoliciesSlugRoute,
   StoreProductSlugRoute: StoreProductSlugRoute,
+  StoreCategoriesIndexRoute: StoreCategoriesIndexRoute,
   StoreOrdersIndexRoute: StoreOrdersIndexRoute,
 }
 

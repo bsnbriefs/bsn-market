@@ -9,7 +9,7 @@ import { NIGERIAN_STATES } from "@/lib/market/states";
 import { Button, errText, Field } from "@/components/market/ui";
 
 export const Route = createFileRoute("/_store/account")({
-  head: () => ({ meta: [{ title: "Account · BSN Market" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Account · SEEK" }, { name: "robots", content: "noindex" }] }),
   component: AccountPage,
 });
 
@@ -45,6 +45,9 @@ function AccountPage() {
       </div>
       <div className="flex flex-wrap gap-2 text-sm font-semibold">
         <Link to="/orders" className="rounded-full bg-surface px-3 py-2">Orders</Link>
+        <Link to="/radar" className="rounded-full bg-surface px-3 py-2">Price Radar</Link>
+        <Link to="/bundle" className="rounded-full bg-surface px-3 py-2">Bundles</Link>
+        <Link to="/fair" className="rounded-full bg-surface px-3 py-2">Fair Deal</Link>
         <Link to="/retailer" className="rounded-full bg-surface px-3 py-2">Sell</Link>
         {data.roles.includes("admin") ? <Link to="/admin" className="rounded-full bg-primary px-3 py-2 text-primary-fg">Admin</Link> : null}
       </div>

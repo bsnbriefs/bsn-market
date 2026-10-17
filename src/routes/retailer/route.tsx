@@ -11,6 +11,7 @@ const links = [
   { to: "/retailer", label: "Overview" },
   { to: "/retailer/products", label: "Products" },
   { to: "/retailer/orders", label: "Orders" },
+  { to: "/retailer/fair", label: "Fair Deal" },
   { to: "/retailer/earnings", label: "Earnings" },
   { to: "/retailer/apply", label: "Application" },
 ];

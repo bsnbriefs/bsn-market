@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "BSN Market · Shop",
+      "hasCanvas": false,
+      "bodyTextLen": 1494,
+      "bodyTextHash": "34fa7d52efe6f803c50e2bc48e21526003b2f04399962365321a4ecb846cafe1",
+      "bodyTextPrefix": "BSNMarket Nigeria · Naira ShopRequest SellAccount Barrister Stre",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "BSN Market · Shop",
+      "hasCanvas": false,
+      "bodyTextLen": 1461,
+      "bodyTextHash": "5888a482fc883997c528ec3c4ee05f7fb9814b9cedadffcfff521ad219fa6eea",
+      "bodyTextPrefix": "BSNMARKET BARRISTER STREET NETWORK Your Market. Your Choice. Del",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

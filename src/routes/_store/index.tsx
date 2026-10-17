@@ -1,45 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Baby, CookingPot, Dumbbell, Headphones, Shirt, ShoppingBasket, Smartphone, Sparkles, Wheat } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getStorefront } from "@/lib/market/catalog";
-import type { ProductCard } from "@/lib/market/catalog";
-import { SearchForm } from "@/components/market/shell";
-import { EmptyState, ProductRail, Reveal } from "@/components/market/ui";
+import { useEffect, useRef, useState } from "react";
+import { getStorefront, searchProducts } from "@/lib/market/catalog";
+import { EmptyState, ProductGrid } from "@/components/market/ui";
 
-const icons: Record<string, typeof Shirt> = {
-  fashion: Shirt,
-  beauty: Sparkles,
-  home: CookingPot,
-  groceries: Wheat,
-  phones: Smartphone,
-  electronics: Headphones,
-  baby: Baby,
-  sports: Dumbbell,
-};
-
-const TABS = [
-  ["for-you", "For you"],
-  ["live", "Live deals"],
-  ["new", "New arrivals"],
-  ["drops", "Price drops"],
-  ["flash", "Flash sales"],
-  ["trending", "Trending"],
-  ["categories", "Categories"],
-] as const;
-
-type TabId = (typeof TABS)[number][0];
 type Storefront = Awaited<ReturnType<typeof getStorefront>>;
 type Campaign = Storefront["campaigns"][number];
 
-const FRESH_MS = 14 * 24 * 60 * 60 * 1000;
+const shopNewest = { q: "", category: "", retailer: "", brand: "", state: "", min: "", max: "", sort: "newest" as const, available: "", page: 1 };
 
 export const Route = createFileRoute("/_store/")({
   loader: () => getStorefront(),
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.storeName ?? "BSN Market"} · Shop` },
-      { name: "description", content: loaderData?.tagline ?? "Your Market. Your Choice. Delivered." },
+      { title: `${loaderData?.storeName ?? "SEEK"} · Shop` },
+      { name: "description", content: "Discover. Choose. Shop with Confidence." },
     ],
   }),
   component: Home,
@@ -74,231 +49,340 @@ function Home() {
   });
   const incoming = feed.data ?? loaded;
   const [shown, setShown] = useState(loaded);
-  const [tab, setTab] = useState<TabId>("for-you");
-  const [status, setStatus] = useState("");
+  const [category, setCategory] = useState("");
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const changed = stamp(incoming) !== stamp(shown);
-  const stories = dealStories(shown);
-
-  async function refreshNow() {
-    const result = await feed.refetch();
-    if (result.data) {
-      const next = stamp(result.data) !== stamp(shown);
-      setShown(result.data);
-      setStatus(next ? "Feed updated." : "No new deals since you last looked.");
-    }
-  }
+  const now = Date.now();
+  const live = shown.campaigns.filter((item) => phase(item, now) !== "ended");
+  const platform = live.filter((item) => !item.retailer_id);
+  const sponsored = live.filter((item) => item.retailer_id);
+  const hero = platform.length > 0 ? platform : sponsored;
+  const sellerAds = platform.length > 0 ? sponsored : [];
+  const parents = shown.categories.filter((item) => !item.parent_slug);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    tabRefs.current[category]?.scrollIntoView({ inline: "center", block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [category]);
 
   return (
     <div>
-      <div className="bsn-rise">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Barrister Street Network</p>
-        <h1 className="mt-1 font-display text-4xl leading-tight md:text-5xl">{shown.tagline}</h1>
-      </div>
-      <div className="bsn-rise mt-4" style={{ animationDelay: "60ms" }}>
-        <SearchForm hints={shown.categories.map((category) => ({ label: category.name, category: category.slug }))} />
-      </div>
-      <section className="mt-4 rounded-3xl bg-fg p-3 text-surface" aria-label="Live deals">
-        <div className="mb-2 flex items-center justify-between gap-3 px-1">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Live deals</h2>
-          <button type="button" onClick={() => void refreshNow()} className="text-xs font-semibold text-surface/80">
-            {feed.isFetching ? "Checking…" : "Refresh"}
+      <h1 className="sr-only">SEEK. Discover. Choose. Shop with Confidence.</h1>
+      <section aria-label="Categories" className="bsn-rise">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4">
+          <button
+            type="button"
+            ref={(node) => { tabRefs.current[""] = node; }}
+            aria-pressed={category === ""}
+            onClick={() => setCategory("")}
+            className={`h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-colors duration-200 ${category === "" ? "bg-primary text-primary-fg" : "border border-border"}`}
+          >
+            All
           </button>
+          {parents.map((item) => (
+            <button
+              key={item.slug}
+              type="button"
+              ref={(node) => { tabRefs.current[item.slug] = node; }}
+              aria-pressed={category === item.slug}
+              onClick={() => setCategory(item.slug)}
+              className={`h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-all duration-200 active:scale-95 ${category === item.slug ? "scale-105 bg-primary text-primary-fg" : "bg-cream text-fg"}`}
+            >
+              {item.name}
+            </button>
+          ))}
+          <Link to="/categories" className="h-8 shrink-0 whitespace-nowrap rounded-full border border-border px-3 text-xs font-semibold leading-8">
+            Browse all
+          </Link>
         </div>
-        {feed.isFetching ? <div className="bsn-pulse mb-2 h-0.5 rounded-full bg-accent" aria-hidden /> : null}
-        {stories.length === 0 ? (
-          <p className="px-1 pb-2 text-sm text-surface/70">Nothing is published yet.</p>
-        ) : (
-          <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
-            {stories.map((story) => (
-              <a
-                key={story.key}
-                href={story.href}
-                className="group w-[4.75rem] shrink-0 snap-start text-center"
-              >
-                <span className={`relative mx-auto grid size-16 place-items-center overflow-hidden rounded-full bg-surface/10 ring-2 transition duration-200 group-hover:scale-105 group-active:scale-95 ${story.status === "LIVE" ? "ring-accent" : "ring-surface/30"}`}>
-                  {story.image ? <img src={story.image} alt="" className="size-full object-cover" /> : <span className="text-[10px]">{story.status}</span>}
-                  {story.status === "LIVE" ? <span className="bsn-live absolute right-1 top-1 size-2 rounded-full bg-accent" /> : null}
-                </span>
-                <span className="mt-1 block truncate text-[11px] font-medium">{story.title}</span>
-                <span className="text-[10px] uppercase tracking-wide text-surface/60">{story.status}</span>
-              </a>
-            ))}
-          </div>
-        )}
       </section>
+      <PromoCarousel slides={buildSlides(shown, hero)} />
+      <DiscoverStrip trending={shown.trending} newest={shown.newest} />
+      <nav aria-label="Shopping" className="mt-3 grid grid-cols-4 gap-2 text-center text-xs font-semibold">
+        <Link to="/categories" className="rounded-2xl bg-cream px-2 py-3 transition-transform active:scale-[0.98]">Categories</Link>
+        {shown.offers.length > 0 ? <a href="#deals" className="rounded-2xl bg-cream px-2 py-3 transition-transform active:scale-[0.98]">Deals</a> : <Link to="/shop" search={shopNewest} className="rounded-2xl bg-cream px-2 py-3 transition-transform active:scale-[0.98]">Shop</Link>}
+        <a href="#new" className="rounded-2xl bg-cream px-2 py-3 transition-transform active:scale-[0.98]">New</a>
+        <Link to="/cart" className="rounded-2xl bg-cream px-2 py-3 transition-transform active:scale-[0.98]">Cart</Link>
+      </nav>
+      {category ? (
+        <CategoryPick slug={category} name={parents.find((item) => item.slug === category)?.name ?? "Category"} onClear={() => setCategory("")} />
+      ) : (
+        <Feed data={shown} />
+      )}
+      <Sponsored campaigns={sellerAds} />
+      <OftenOrdered products={shown.trending} seen={[...shown.offers, ...shown.newest, ...shown.featured].map((item) => item.id)} />
+      <p className="mt-4 text-sm">
+        <Link to="/shop" search={shopNewest} className="font-semibold text-primary">Browse the full shop</Link>
+      </p>
       {changed ? (
         <button
           type="button"
-          onClick={() => {
-            setShown(incoming);
-            setStatus("");
-          }}
+          onClick={() => setShown(incoming)}
           className="mt-3 w-full rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-fg"
         >
           New deals available
         </button>
       ) : null}
-      {status ? <p className="mt-2 text-xs text-muted">{status}</p> : null}
-      <div className="sticky top-14 z-20 -mx-4 mt-4 border-b border-border bg-bg/95 px-4 backdrop-blur">
-        <div className="flex snap-x gap-2 overflow-x-auto py-2" role="tablist" aria-label="Market feed">
-          {TABS.map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => setTab(id)}
-              className={`h-10 shrink-0 snap-start rounded-full px-3 text-sm font-semibold transition-colors ${tab === id ? "bg-fg text-surface" : "text-muted hover:bg-surface"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div key={tab} className="bsn-fade">
-        <Feed tab={tab} data={shown} />
-      </div>
-      <Reveal className="mt-10">
-        <section className="grid gap-3 sm:grid-cols-3">
-          {[
-            ["Checked at checkout", "The server prices the cart again before Paystack opens."],
-            ["Many retailers", "Each seller ships their own goods. One cart can hold more than one."],
-            ["Real stock only", "Sold-out options stay on the product. Nothing is reserved until you pay."],
-          ].map(([title, body]) => (
-            <div key={title} className="rounded-2xl border border-border bg-surface p-4">
-              <h3 className="font-display text-xl">{title}</h3>
-              <p className="mt-1 text-sm text-muted">{body}</p>
-            </div>
-          ))}
-        </section>
-      </Reveal>
     </div>
   );
 }
 
-function Feed({ tab, data }: { tab: TabId; data: Storefront }) {
-  const now = Date.now();
-  const flash = data.campaigns.filter((item) => phase(item, now) === "live");
-  if (tab === "categories") {
-    return (
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {data.categories.map((category) => {
-          const Icon = icons[category.slug] ?? ShoppingBasket;
-          return (
-            <Link
-              key={category.slug}
-              to="/shop"
-              search={{ q: "", category: category.slug, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", page: 1 }}
-              className="group flex h-24 flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-surface text-xs font-medium transition duration-200 hover:border-primary/50 active:scale-95"
-            >
-              <Icon className="size-5 text-primary transition duration-200 group-hover:-translate-y-0.5" />
-              {category.name}
-            </Link>
-          );
-        })}
-      </div>
-    );
-  }
-  if (tab === "flash") {
-    if (flash.length === 0) {
-      return (
-        <div className="mt-4">
-          <EmptyState title="No flash sale is running" body="A countdown appears only after an administrator sets a real end time on a promotion. Marked-down prices stay on Price drops." />
+function Feed({ data }: { data: Storefront }) {
+  const dealIds = new Set(data.offers.map((item) => item.id));
+  const arrivals = data.newest.filter((item) => !dealIds.has(item.id));
+  const shownIds = new Set([...dealIds, ...arrivals.map((item) => item.id)]);
+  const featured = data.featured.filter((item) => !shownIds.has(item.id));
+  return (
+    <>
+      {data.offers.length > 0 ? (
+        <section id="deals" className="mt-4 scroll-mt-24">
+          <h2 className="text-sm font-semibold">Deals</h2>
+          <ProductGrid products={data.offers} />
+        </section>
+      ) : null}
+      <section id="new" className="mt-4 scroll-mt-24">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold">New arrivals</h2>
+          <Link to="/shop" search={shopNewest} className="text-xs font-semibold text-primary">See all</Link>
         </div>
-      );
-    }
-    return (
-      <div className="mt-4 space-y-4">
-        {flash.map((campaign) => (
-          <a key={campaign.id} href={campaign.link_path || "/shop"} className="block overflow-hidden rounded-3xl border border-border bg-fg text-surface">
-            {campaign.image_url ? <img src={campaign.image_url} alt="" className="h-44 w-full object-cover" /> : null}
-            <div className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent-fg">Flash sale</p>
-              <h2 className="font-display text-3xl">{campaign.title}</h2>
-              <p className="mt-1 text-sm text-surface/80">{campaign.subtitle}</p>
-              {campaign.ends_at ? <p className="mt-2 text-sm font-semibold">Ends in <Countdown endsAt={campaign.ends_at} /></p> : null}
-            </div>
+        {arrivals.length > 0 ? (
+          <ProductGrid products={arrivals} />
+        ) : data.offers.length > 0 ? (
+          <p className="mt-2 text-sm text-muted">The newest listings are already in Deals.</p>
+        ) : (
+          <ProductGrid products={data.newest} />
+        )}
+      </section>
+      {featured.length > 0 ? (
+        <section className="mt-4">
+          <h2 className="text-sm font-semibold">Featured</h2>
+          <ProductGrid products={featured} />
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+function Sponsored({ campaigns }: { campaigns: Campaign[] }) {
+  if (campaigns.length === 0) return null;
+  return (
+    <section className="mt-4" aria-label="Sponsored">
+      <h2 className="text-sm font-semibold">From sellers</h2>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {campaigns.map((campaign) => (
+          <a key={campaign.id} href={campaign.link_path || "/shop"} className="overflow-hidden rounded-2xl bg-cream active:scale-[0.98]">
+            {campaign.image_url ? <img src={campaign.image_url} alt="" className="aspect-[16/9] w-full object-cover" /> : null}
+            <p className="px-2 pt-2 text-[11px] font-semibold uppercase tracking-wide text-primary">Sponsored</p>
+            <p className="line-clamp-2 px-2 pb-2 text-sm font-semibold">{campaign.title}</p>
           </a>
         ))}
       </div>
-    );
-  }
-  if (tab === "trending") {
-    return data.trending.length === 0 ? (
-      <div className="mt-4">
-        <EmptyState title="Nothing is trending yet" body="This list is ranked from paid orders. It stays empty until customers actually buy." />
-      </div>
-    ) : (
-      <ProductRail title="Trending" note="Ranked from completed orders, not a paid placement." products={data.trending} />
-    );
-  }
-  if (tab === "drops") {
-    return data.offers.length === 0 ? (
-      <div className="mt-4">
-        <EmptyState title="No price drops" body="A drop is a product whose current price is below its compare-at price." />
-      </div>
-    ) : (
-      <ProductRail title="Price drops" note="Compare-at price is higher. This is not a timed countdown." products={data.offers} />
-    );
-  }
-  if (tab === "new") {
-    return <ProductRail title="New arrivals" note="Newest approved listings." products={data.newest} />;
-  }
-  if (tab === "live") {
-    const running = data.campaigns.filter((item) => phase(item, now) !== "ended");
-    return (
-      <div>
-        {running.map((campaign) => (
-          <p key={campaign.id} className="mt-4 text-sm text-muted">
-            {campaign.title}
-            {phase(campaign, now) === "live" ? " is a timed sale." : " is a published promotion with no end time, so it is not a countdown."}
-          </p>
-        ))}
-        <ProductRail title="Available offers" products={data.offers.length ? data.offers : data.newest} />
-      </div>
-    );
-  }
+    </section>
+  );
+}
+
+function OftenOrdered({ products, seen }: { products: Storefront["trending"]; seen: string[] }) {
+  const skip = new Set(seen);
+  const rest = products.filter((item) => !skip.has(item.id));
+  if (rest.length === 0) return null;
   return (
-    <div>
-      <CampaignStage campaigns={data.campaigns.filter((item) => phase(item, now) !== "ended")} />
-      <ProductRail title="For you" products={data.featured.length ? data.featured : data.newest} />
+    <section className="mt-4">
+      <h2 className="text-sm font-semibold">Often ordered</h2>
+      <p className="text-xs text-muted">From completed orders, not a guess.</p>
+      <ProductGrid products={rest} />
+    </section>
+  );
+}
+
+type Slide = {
+  id: string;
+  kicker: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  href: string;
+  endsAt: string | null;
+};
+
+function buildSlides(data: Storefront, campaigns: Campaign[]): Slide[] {
+  const slides: Slide[] = campaigns.map((campaign) => ({
+    id: campaign.id,
+    kicker: campaign.retailer_id ? "Sponsored" : "Promotion",
+    title: campaign.title,
+    subtitle: campaign.subtitle,
+    image: campaign.image_url,
+    href: campaign.link_path || "/shop",
+    endsAt: campaign.ends_at,
+  }));
+  if (data.newest.length > 0) {
+    slides.push({
+      id: "discover-new",
+      kicker: "Discover",
+      title: "Discover something new",
+      subtitle: "New listings from approved sellers.",
+      image: data.newest[0]?.imageUrl ?? "",
+      href: "/shop?sort=newest",
+      endsAt: null,
+    });
+  }
+  if (data.offers.length > 0) {
+    slides.push({
+      id: "discover-deals",
+      kicker: "Discover",
+      title: "Deals worth discovering",
+      subtitle: "These products are priced below their compare-at price.",
+      image: data.offers[0]?.imageUrl ?? "",
+      href: "#deals",
+      endsAt: null,
+    });
+  }
+  if (data.categories.some((category) => !category.parent_slug)) {
+    slides.push({
+      id: "discover-local",
+      kicker: "Discover",
+      title: "Shop local. Discover more.",
+      subtitle: "Browse categories stocked by Nigerian sellers.",
+      image: "",
+      href: "/categories",
+      endsAt: null,
+    });
+  }
+  return slides;
+}
+
+function PromoCarousel({ slides }: { slides: Slide[] }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const startX = useRef(0);
+  const count = slides.length;
+  useEffect(() => {
+    if (count < 2 || paused) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      setIndex((current) => (current + 1) % count);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, [count, paused]);
+  if (count === 0) return null;
+  const slide = slides[index] ?? slides[0];
+  const showCountdown = Boolean(slide.endsAt && phase({ ends_at: slide.endsAt, starts_at: null } as Campaign, Date.now()) === "live");
+  return (
+    <div
+      className="relative mt-3"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      onTouchStart={(event) => {
+        startX.current = event.changedTouches[0]?.clientX ?? 0;
+        setPaused(true);
+      }}
+      onTouchEnd={(event) => {
+        const delta = (event.changedTouches[0]?.clientX ?? 0) - startX.current;
+        if (count > 1 && Math.abs(delta) > 40) setIndex((current) => (current + (delta < 0 ? 1 : count - 1)) % count);
+        setPaused(false);
+      }}
+    >
+      <div className="overflow-hidden rounded-2xl bg-ink">
+        <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${index * 100}%)` }}>
+          {slides.map((item) => (
+            <a key={item.id} href={item.href} className="relative block h-32 w-full shrink-0 md:h-40">
+              {item.image ? <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 bg-primary" />}
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/85 to-ink/10" />
+              <div className="absolute inset-x-0 bottom-0 p-3 pr-24 text-on-ink">
+                <p className="text-[11px] font-semibold uppercase tracking-wide">{item.kicker}</p>
+                <h2 className="line-clamp-1 text-base font-bold">{item.title}</h2>
+                {item.subtitle ? <p className="line-clamp-1 text-xs text-on-ink/80">{item.subtitle}</p> : null}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+      {showCountdown && slide.endsAt ? (
+        <p className="mt-1 text-xs text-muted">Ends in <Countdown endsAt={slide.endsAt} /></p>
+      ) : null}
+      {count > 1 ? (
+        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+          <button type="button" aria-label="Previous slide" className="grid size-7 place-items-center rounded-full bg-surface/90 text-xs text-fg" onClick={() => setIndex((current) => (current + count - 1) % count)}>‹</button>
+          {slides.map((item, itemIndex) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={`Show ${item.title}`}
+              aria-current={itemIndex === index}
+              onClick={() => setIndex(itemIndex)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${itemIndex === index ? "w-4 bg-surface" : "w-1.5 bg-surface/50"}`}
+            />
+          ))}
+          <button type="button" aria-label="Next slide" className="grid size-7 place-items-center rounded-full bg-surface/90 text-xs text-fg" onClick={() => setIndex((current) => (current + 1) % count)}>›</button>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-type Story = { key: string; href: string; image: string; title: string; status: string };
+function DiscoverStrip({ trending, newest }: { trending: Storefront["trending"]; newest: Storefront["newest"] }) {
+  const items = (trending.length > 0 ? trending : newest).slice(0, 8);
+  const [paused, setPaused] = useState(false);
+  if (items.length === 0) return null;
+  const title = trending.length > 0 ? "Trending on SEEK" : "Discover on SEEK";
+  const loop = [...items, ...items];
+  return (
+    <section className="mt-3" aria-label={title}>
+      <h2 className="text-sm font-semibold">{title}</h2>
+      {trending.length === 0 ? <p className="text-xs text-muted">Recent listings. Not a popularity ranking.</p> : null}
+      <div
+        className="bsn-marquee-clip mt-2"
+        onPointerDown={() => setPaused(true)}
+        onPointerUp={() => setPaused(false)}
+        onPointerCancel={() => setPaused(false)}
+      >
+        <div className={`bsn-marquee flex w-max gap-2 ${paused ? "is-paused" : ""}`}>
+          {loop.map((product, index) => (
+            <Link
+              key={`${product.id}-${index}`}
+              to="/product/$slug"
+              params={{ slug: product.id }}
+              className="flex h-10 w-44 shrink-0 items-center gap-2 rounded-full bg-cream px-2"
+            >
+              {product.imageUrl ? <img src={product.imageUrl} alt="" className="size-7 rounded-full object-cover" /> : <span className="size-7 rounded-full bg-surface" />}
+              <span className="truncate text-xs font-semibold">{product.name}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-function dealStories(data: Storefront): Story[] {
-  const now = Date.now();
-  const stories: Story[] = [];
-  const seen = new Set<string>();
-  for (const campaign of data.campaigns) {
-    const state = phase(campaign, now);
-    stories.push({
-      key: `c-${campaign.id}`,
-      href: campaign.link_path || "/shop",
-      image: campaign.image_url,
-      title: campaign.title,
-      status: state === "live" ? "LIVE" : state === "soon" ? "SOON" : state === "ended" ? "ENDED" : "PROMO",
-    });
-  }
-  const pushProduct = (product: ProductCard, status: string) => {
-    if (seen.has(product.id) || stories.length >= 14) return;
-    seen.add(product.id);
-    stories.push({
-      key: `${status}-${product.id}`,
-      href: `/product/${product.id}`,
-      image: product.imageUrl,
-      title: product.name,
-      status,
-    });
-  };
-  for (const product of data.newest) {
-    if (product.createdAt && now - new Date(product.createdAt).getTime() < FRESH_MS) pushProduct(product, "NEW");
-  }
-  for (const product of data.offers) pushProduct(product, "DROP");
-  for (const product of data.trending) pushProduct(product, "TRENDING");
-  return stories;
+function CategoryPick({ slug, name, onClear }: { slug: string; name: string; onClear: () => void }) {
+  const result = useQuery({
+    queryKey: ["home-category", slug],
+    queryFn: () =>
+      searchProducts({
+        data: { q: "", category: slug, retailer: "", brand: "", state: "", min: "", max: "", sort: "newest", available: "", page: 1 },
+      }),
+  });
+  return (
+    <section className="mt-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold">{name}</h2>
+        <button type="button" onClick={onClear} className="text-xs font-semibold text-primary">Show all</button>
+      </div>
+      {result.isLoading ? <p className="mt-2 text-sm text-muted">Loading products…</p> : null}
+      {result.isError ? <p className="mt-2 text-sm text-danger">Could not load this category.</p> : null}
+      {result.data && result.data.products.length === 0 ? (
+        <div className="mt-3">
+          <EmptyState title="No products in this category" body="Approved products will show here." />
+        </div>
+      ) : (
+        <ProductGrid products={result.data?.products ?? []} />
+      )}
+      <Link to="/categories/$slug" params={{ slug }} search={{ sort: "newest" }} className="mt-2 inline-block text-xs font-semibold text-primary">
+        Open {name}
+      </Link>
+    </section>
+  );
 }
 
 function Countdown({ endsAt }: { endsAt: string }) {
@@ -322,69 +406,3 @@ function Countdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-function CampaignStage({ campaigns }: { campaigns: Campaign[] }) {
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const count = campaigns.length;
-  useEffect(() => {
-    if (count < 2 || paused) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setIndex((current) => (current + 1) % count), 7000);
-    return () => window.clearInterval(timer);
-  }, [count, paused]);
-  if (count === 0) return null;
-  const campaign = campaigns[index] ?? campaigns[0];
-  const state = phase(campaign, Date.now());
-  return (
-    <div className="relative mt-5" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <a href={campaign.link_path || "/shop"} className="relative block overflow-hidden rounded-3xl border border-border bg-fg">
-        <div className="relative h-56 md:h-80">
-          {campaigns.map((item, itemIndex) =>
-            item.image_url ? (
-              <img
-                key={item.id}
-                src={item.image_url}
-                alt=""
-                className={`bsn-drift absolute inset-0 h-full w-full object-cover bsn-slide ${itemIndex === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
-              />
-            ) : null,
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-fg via-fg/25 to-transparent" />
-          <div key={campaign.id} className="bsn-fade absolute inset-x-0 bottom-0 p-5 text-surface md:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent-fg">
-              {state === "live" ? "Live" : "Promotion"}
-            </p>
-            <h2 className="max-w-xl font-display text-3xl md:text-5xl">{campaign.title}</h2>
-            <p className="mt-2 max-w-lg text-sm text-surface/85">{campaign.subtitle}</p>
-            {state === "live" && campaign.ends_at ? (
-              <p className="mt-2 text-sm font-semibold">Ends in <Countdown endsAt={campaign.ends_at} /></p>
-            ) : null}
-          </div>
-        </div>
-      </a>
-      {count > 1 ? (
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex gap-1.5">
-            {campaigns.map((item, itemIndex) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={`Show ${item.title}`}
-                onClick={() => setIndex(itemIndex)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${itemIndex === index ? "w-8 bg-primary" : "w-2 bg-border"}`}
-              />
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button type="button" className="h-10 rounded-full border border-border bg-surface px-3 text-sm" onClick={() => setIndex((current) => (current - 1 + count) % count)}>
-              Previous
-            </button>
-            <button type="button" className="h-10 rounded-full border border-border bg-surface px-3 text-sm" onClick={() => setIndex((current) => (current + 1) % count)}>
-              Next
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
